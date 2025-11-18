@@ -38,13 +38,13 @@ export type RefreshTokenResult = {
 export type logoutResult = {
   code: number;
   data: string;
-  msg: string
-}
+  msg: string;
+};
 
 /** 登录 */
 export const getLogin = (data?: object) => {
   console.log("调用登录接口，参数：", data);
-  return http.request<UserResult>("post", "http://localhost:8082/simurg_reader_admin/auth/login", { data });
+  return http.request<UserResult>("post", "/admin/auth/login", { data });
 };
 
 export const getLogout = (data?: object) => {
@@ -56,11 +56,11 @@ export const getLogout = (data?: object) => {
   // 2. 设置请求头（通常需要 Authorization 字段）
   const headers = {
     "Content-Type": "application/json", // 默认 JSON 格式
-    "authorities": token ? `${token}` : "" // 添加 Token 认证
+    authorities: token ? `${token}` : "" // 添加 Token 认证
   };
 
   // 3. 在请求中传入 headers
-  return http.request<logoutResult>("post", "http://localhost:8082/simurg_reader_admin/auth/logout", {
+  return http.request<logoutResult>("post", "/admin/auth/logout", {
     data,
     headers // 传入自定义请求头
   });
@@ -70,5 +70,3 @@ export const getLogout = (data?: object) => {
 export const refreshTokenApi = (data?: object) => {
   return http.request<RefreshTokenResult>("post", "/refresh-token", { data });
 };
-
-

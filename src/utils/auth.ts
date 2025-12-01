@@ -5,19 +5,15 @@ import { storageLocal, isString, isIncludeAllChildren } from "@pureadmin/utils";
 export interface DataInfo<T> {
   /** token */
   accessToken: string;
-  /** `accessToken`的过期时间（秒） */
-  accessTokenExpires: string;
+  /** `accessToken`的过期时间（时间戳） */
+  accessTokenExpire: T;
   /** 用于调用刷新accessToken的接口时所需的token */
   refreshToken: string;
-  /** `refreshToken`的过期时间（秒） */
-  refreshTokenExpires: string;
-  /** 来源，4-System管理后台 */
-  source: string;
-  userId: string;
   /** 头像 */
-  // avatar?: string;
+  avatar?: string;
   /** 用户名 */
-  username?: string;
+  account?: string;
+  userId?: string;
   /** 昵称 */
   nickname?: string;
   /** 当前登录用户的角色 */
@@ -46,88 +42,78 @@ export function getToken(): DataInfo<number> {
 
 /**
  * @description 设置`token`以及一些必要信息并采用无感刷新`token`方案
- * 无感刷新：后端返回`accessToken`（访问接口使用的`token`）、`refreshToken`（用于调用刷新`accessToken`的接口时所需的`token`，`refreshToken`的过期时间（比如30天）应大于`accessToken`的过期时间（比如2小时））、`expires`（`accessToken`的过期时间）
- * 将`accessToken`、`expires`、`refreshToken`这三条信息放在key值为authorized-token的cookie里（过期自动销毁）
- * 将`avatar`、`username`、`nickname`、`roles`、`permissions`、`refreshToken`、`expires`这七条信息放在key值为`user-info`的localStorage里（利用`multipleTabsKey`当浏览器完全关闭后自动销毁）
+ * 无感刷新：后端返回`accessToken`（访问接口使用的`token`）、`refreshToken`（用于调用刷新`accessToken`的接口时所需的`token`，`refreshToken`的过期时间（比如30天）应大于`accessToken`的过期时间（比如2小时））、`accessTokenExpire`（`accessToken`的过期时间）
+ * 将`accessToken`、`accessTokenExpire`、`refreshToken`这三条信息放在key值为authorized-token的cookie里（过期自动销毁）
+ * 将`avatar`、`account`、`nickname`、`roles`、`permissions`、`refreshToken`、`accessTokenExpire`这七条信息放在key值为`user-info`的localStorage里（利用`multipleTabsKey`当浏览器完全关闭后自动销毁）
  */
-export function setToken(data: DataInfo<string>) {
-  const { accessToken, refreshToken, accessTokenExpires, refreshTokenExpires } = data;
-  console.log("调用设置token方法，参数：", data);
-  const userStore = useUserStoreHook();
-  const { isRemembered, loginDay } = userStore;
+export function setToken(data: DataInfo<Date>) {
+  let accessTokenExpire = 0;
+  const { accessToken, refreshToken } = data;
+  const { isRemembered, loginDay } = useUserStoreHook();
+  accessTokenExpire = new Date(data.accessTokenExpire).getTime(); // 如果后端直接设置时间戳，将此处代码改为accessTokenExpire = data.accessTokenExpire，然后把上面的DataInfo<Date>改成DataInfo<number>即可
+  const cookieString = JSON.stringify({ accessToken, accessTokenExpire, refreshToken });
 
-  // 1. 计算 accessToken 的过期时间戳（当前时间 + 过期秒数 * 1000）
-  const accessExpires = Date.now() + parseInt(accessTokenExpires) * 1000;
-  // 2. 计算 refreshToken 的过期时间戳
-  const refreshExpires = Date.now() + parseInt(refreshTokenExpires) * 1000;
+  accessTokenExpire > 0
+    ? Cookies.set(TokenKey, cookieString, {
+      accessTokenExpire: (accessTokenExpire - Date.now()) / 86400000
+    })
+    : Cookies.set(TokenKey, cookieString);
 
-  // 构造 Cookie 存储的内容
-  const cookieString = JSON.stringify({
-    accessToken,
-    accessExpires,
-    refreshToken,
-    refreshExpires
-  });
-
-  // 设置 accessToken 的 Cookie（根据 accessExpires 计算过期天数）
-  const accessCookieExpires = (accessExpires - Date.now()) / 86400000;
-  Cookies.set(TokenKey, cookieString, {
-    expires: accessCookieExpires > 0 ? accessCookieExpires : undefined
-  });
-
-  // 设置多标签页标识的 Cookie
   Cookies.set(
     multipleTabsKey,
     "true",
     isRemembered
-      ? { expires: loginDay }
+      ? {
+        accessTokenExpire: loginDay
+      }
       : {}
   );
 
-  // 处理用户信息存储（avatar、username 等）
-  function setUserKey({ avatar, username, nickname, roles, permissions }) {
-    userStore.SET_AVATAR(avatar);
-    userStore.SET_USERNAME(username);
-    userStore.SET_NICKNAME(nickname);
-    userStore.SET_ROLES(roles);
-    userStore.SET_PERMS(permissions);
+  function setUserKey({ avatar, account, nickname, roles, permissions }) {
+    useUserStoreHook().SET_AVATAR(avatar);
+    useUserStoreHook().SET_USERNAME(account);
+    useUserStoreHook().SET_NICKNAME(nickname);
+    useUserStoreHook().SET_ROLES(roles);
+    useUserStoreHook().SET_PERMS(permissions);
     storageLocal().setItem(userKey, {
       refreshToken,
-      accessExpires,
-      refreshExpires,
+      accessTokenExpire,
       avatar,
-      username,
+      account,
       nickname,
       roles,
       permissions
     });
-    console.log("存储用户信息：", storageLocal().getItem(userKey));
-    console.log("userStore：", userStore);
   }
 
-  // 有后端返回的 username/roles 时，直接用后端数据
-  // if (data.username && data.roles) {
-  if (data.userId) {
+  if (data.account && data.roles) {
+    const { account, roles } = data;
     setUserKey({
       avatar: data?.avatar ?? "",
-      username: data.username,
+      account,
       nickname: data?.nickname ?? "",
-      roles: "admin",
-      // permissions: data?.permissions ?? [],
-      permissions: 'admin'
+      roles,
+      permissions: data?.permissions ?? []
+    });
+  } else {
+    const avatar =
+      storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "";
+    const account =
+      storageLocal().getItem<DataInfo<number>>(userKey)?.account ?? "";
+    const nickname =
+      storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? "";
+    const roles =
+      storageLocal().getItem<DataInfo<number>>(userKey)?.roles ?? [];
+    const permissions =
+      storageLocal().getItem<DataInfo<number>>(userKey)?.permissions ?? [];
+    setUserKey({
+      avatar,
+      account,
+      nickname,
+      roles,
+      permissions
     });
   }
-  // 否则从 localStorage 读取历史用户信息
-  // else {
-  const storedUser = storageLocal().getItem<DataInfo<string>>(userKey) || {};
-  setUserKey({
-    avatar: storedUser?.avatar ?? "",
-    username: storedUser?.username ?? "",
-    nickname: storedUser?.nickname ?? "",
-    roles: storedUser?.roles ?? [],
-    permissions: storedUser?.permissions ?? []
-  });
-  // }
 }
 
 /** 删除`token`以及key值为`user-info`的localStorage信息 */
@@ -139,7 +125,8 @@ export function removeToken() {
 
 /** 格式化token（jwt格式） */
 export const formatToken = (token: string): string => {
-  return "Bearer " + token;
+  // return "Bearer " + token;
+  return token;
 };
 
 /** 是否有按钮级别的权限（根据登录接口返回的`permissions`字段进行判断）*/

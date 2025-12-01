@@ -1,4 +1,5 @@
 {
+  "tailwindCSS.experimental.configFile": "src/style/tailwind.css",
   "editor.formatOnType": true,
   "editor.formatOnSave": true,
   "[vue]": {
@@ -7,7 +8,7 @@
   "editor.tabSize": 2,
   "editor.formatOnPaste": true,
   "editor.guides.bracketPairs": "active",
-  "files.autoSave": "afterDelay",
+  "files.autoSave": "off",
   "git.confirmSync": false,
   "workbench.startupEditor": "newUntitledFile",
   "editor.suggestSelection": "first",
@@ -42,6 +43,14 @@
   ],
   "iconify.excludes": [
     "el"
+  ],
+  "vsmqtt.brokerProfiles": [
+    {
+      "name": "broker.emqx.io",
+      "host": "broker.emqx.io/mqtt",
+      "port": 1883,
+      "clientId": "vsmqtt_client_db34"
+    }
   ],
   "vscodeCustomCodeColor.highlightValue": [
     "v-loading",

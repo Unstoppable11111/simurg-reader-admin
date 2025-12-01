@@ -6,12 +6,12 @@ export default defineFakeRoute([
     url: "/login",
     method: "post",
     response: ({ body }) => {
-      if (body.username === "admin") {
+      if (body.account === "admin") {
         return {
           success: true,
           data: {
             avatar: "https://avatars.githubusercontent.com/u/44761321",
-            username: "admin",
+            account: "admin",
             nickname: "小铭",
             // 一个用户可能有多个角色
             roles: ["admin"],
@@ -27,7 +27,7 @@ export default defineFakeRoute([
           success: true,
           data: {
             avatar: "https://avatars.githubusercontent.com/u/52823142",
-            username: "common",
+            account: "common",
             nickname: "小林",
             roles: ["common"],
             permissions: ["permission:btn:add", "permission:btn:edit"],

@@ -1,4 +1,4 @@
-// import "@/utils/sso";
+import "@/utils/sso";
 import Cookies from "js-cookie";
 import { getConfig } from "@/config";
 import NProgress from "@/utils/progress";
@@ -48,12 +48,42 @@ const modules: Record<string, any> = import.meta.glob(
     eager: true
   }
 );
+console.log(modules, 'modules=========');
 
-/** 原始静态路由（未做任何处理） */
-const routes = [];
 
+/** 原始静态路由 ,过滤hidden菜单*/
+const routes: RouteRecordRaw[] = [];
 Object.keys(modules).forEach(key => {
-  routes.push(modules[key].default);
+  const mod = modules[key].default;
+
+  if (!mod) return; // 如果 default 是 undefined，跳过
+
+  // 情况1: mod 是一个对象，且有 path 字段 → 它是一个“直接路由对象”
+  if (typeof mod === "object" && mod.path !== undefined) {
+    // 直接作为单个路由使用
+    if (!mod.meta?.hidden) {
+      routes.push(mod);
+    }
+    return;
+  }
+
+  // 情况2: mod 是一个对象，但没有 path → 可能是 { key: route } 格式
+  if (typeof mod === "object") {
+    const routeList = Object.values(mod); // 提取所有值
+    for (const route of routeList) {
+      if (
+        route &&
+        typeof route === "object" &&
+        !route.meta?.hidden
+      ) {
+        routes.push(route);
+      }
+    }
+    return;
+  }
+
+  // 情况3: 不是对象 → 忽略
+  console.warn(`[Router] Invalid module format: ${key}`);
 });
 
 /** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
@@ -94,6 +124,14 @@ export const router: Router = createRouter({
   }
 });
 
+/** 记录已经加载的页面路径 */
+const loadedPaths = new Set<string>();
+
+/** 重置已加载页面记录 */
+export function resetLoadedPaths() {
+  loadedPaths.clear();
+}
+
 /** 重置路由 */
 export function resetRouter() {
   router.clearRoutes();
@@ -104,6 +142,7 @@ export function resetRouter() {
     formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
   );
   usePermissionStoreHook().clearAllCachePage();
+  resetLoadedPaths();
 }
 
 /** 路由白名单 */
@@ -112,6 +151,12 @@ const whiteList = ["/login"];
 const { VITE_HIDE_HOME } = import.meta.env;
 
 router.beforeEach((to: ToRouteType, _from, next) => {
+  to.meta.loaded = loadedPaths.has(to.path);
+
+  if (!to.meta.loaded) {
+    NProgress.start();
+  }
+
   if (to.meta?.keepAlive) {
     handleAliveRoute(to, "add");
     // 页面整体刷新和点击标签页刷新
@@ -120,7 +165,6 @@ router.beforeEach((to: ToRouteType, _from, next) => {
     }
   }
   const userInfo = storageLocal().getItem<DataInfo<number>>(userKey);
-  NProgress.start();
   const externalLink = isUrl(to?.name as string);
   if (!externalLink) {
     to.matched.some(item => {
@@ -206,7 +250,8 @@ router.beforeEach((to: ToRouteType, _from, next) => {
   }
 });
 
-router.afterEach(() => {
+router.afterEach(to => {
+  loadedPaths.add(to.path);
   NProgress.done();
 });
 

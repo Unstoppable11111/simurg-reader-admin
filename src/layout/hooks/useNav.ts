@@ -46,9 +46,9 @@ export function useNav() {
   });
 
   /** 昵称（如果昵称为空则显示用户名） */
-  const username = computed(() => {
+  const account = computed(() => {
     return isAllEmpty(useUserStoreHook()?.nickname)
-      ? useUserStoreHook()?.username
+      ? useUserStoreHook()?.account
       : useUserStoreHook()?.nickname;
   });
 
@@ -69,7 +69,7 @@ export function useNav() {
   });
 
   const avatarsStyle = computed(() => {
-    return username.value ? { marginRight: "10px" } : "";
+    return account.value ? { marginRight: "10px" } : "";
   });
 
   const isCollapse = computed(() => {
@@ -107,6 +107,10 @@ export function useNav() {
 
   function onPanel() {
     emitter.emit("openPanel");
+  }
+
+  function toAccountSettings() {
+    router.push({ name: "AccountSettings" });
   }
 
   function toggleSideBar() {
@@ -165,10 +169,11 @@ export function useNav() {
     getLogo,
     isCollapse,
     pureApp,
-    username,
+    account,
     userAvatar,
     avatarsStyle,
     tooltipEffect,
+    toAccountSettings,
     getDropdownItemStyle,
     getDropdownItemClass
   };

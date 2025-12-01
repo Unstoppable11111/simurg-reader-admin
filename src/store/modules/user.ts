@@ -11,20 +11,17 @@ import {
   type UserResult,
   type RefreshTokenResult,
   getLogin,
-  refreshTokenApi,
-  getLogout
+  refreshTokenApi
 } from "@/api/user";
 import { useMultiTagsStoreHook } from "./multiTags";
-import { type DataInfo, setToken, removeToken, userKey, getToken } from "@/utils/auth";
-import { rejects } from "assert";
-import { get } from "sortablejs";
+import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
 
 export const useUserStore = defineStore("pure-user", {
   state: (): userType => ({
     // 头像
     avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "",
     // 用户名
-    username: storageLocal().getItem<DataInfo<number>>(userKey)?.username ?? "",
+    account: storageLocal().getItem<DataInfo<number>>(userKey)?.account ?? "",
     // 昵称
     nickname: storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? "",
     // 页面级别权限
@@ -32,6 +29,10 @@ export const useUserStore = defineStore("pure-user", {
     // 按钮级别权限
     permissions:
       storageLocal().getItem<DataInfo<number>>(userKey)?.permissions ?? [],
+    // 前端生成的验证码（按实际需求替换）
+    verifyCode: "",
+    // 判断登录页面显示哪个组件（0：登录（默认）、1：手机登录、2：二维码登录、3：注册、4：忘记密码）
+    currentPage: 0,
     // 是否勾选了登录页的免登录
     isRemembered: false,
     // 登录页的免登录存储几天，默认7天
@@ -43,8 +44,8 @@ export const useUserStore = defineStore("pure-user", {
       this.avatar = avatar;
     },
     /** 存储用户名 */
-    SET_USERNAME(username: string) {
-      this.username = username;
+    SET_USERNAME(account: string) {
+      this.account = account;
     },
     /** 存储昵称 */
     SET_NICKNAME(nickname: string) {
@@ -57,6 +58,14 @@ export const useUserStore = defineStore("pure-user", {
     /** 存储按钮级别权限 */
     SET_PERMS(permissions: Array<string>) {
       this.permissions = permissions;
+    },
+    /** 存储前端生成的验证码 */
+    SET_VERIFYCODE(verifyCode: string) {
+      this.verifyCode = verifyCode;
+    },
+    /** 存储登录页面显示哪个组件 */
+    SET_CURRENTPAGE(value: number) {
+      this.currentPage = value;
     },
     /** 存储是否勾选了登录页的免登录 */
     SET_ISREMEMBERED(bool: boolean) {
@@ -71,8 +80,9 @@ export const useUserStore = defineStore("pure-user", {
       return new Promise<UserResult>((resolve, reject) => {
         getLogin(data)
           .then(data => {
-            console.log("登录接口返回：", data);
-            if (data?.code == 200) setToken(data.data);
+            console.log(data, '登录data----------');
+
+            if (data?.code === 200) setToken(data.data as any);
             resolve(data);
           })
           .catch(error => {
@@ -81,27 +91,14 @@ export const useUserStore = defineStore("pure-user", {
       });
     },
     /** 前端登出（不调用接口） */
-    async logOut() {
-      console.log("调用前端登出", getToken());
-      return new Promise<void>((resolve, reject) => {
-        getLogout(getToken())
-          .then(data => {
-            if (data.code === 200) {
-              console.log("登出成功", data);
-              this.username = "";
-              this.roles = [];
-              this.permissions = [];
-              removeToken();
-              useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
-              resetRouter();
-              router.push("/login");
-              resolve();
-            }
-          })
-          .catch(error => {
-            reject(error);
-          });
-      });
+    logOut() {
+      this.account = "";
+      this.roles = [];
+      this.permissions = [];
+      removeToken();
+      useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
+      resetRouter();
+      router.push("/login");
     },
     /** 刷新`token` */
     async handRefreshToken(data) {

@@ -16,7 +16,7 @@ const elStyle = computed((): CSSProperties => {
   };
 });
 
-const username = ref(useUserStoreHook()?.username);
+const account = ref(useUserStoreHook()?.account);
 
 const options = [
   {
@@ -31,7 +31,7 @@ const options = [
 
 function onChange() {
   useUserStoreHook()
-    .loginByUsername({ username: username.value, password: "admin123" })
+    .loginByUsername({ account: account.value, password: "admin123" })
     .then(res => {
       if (res.success) {
         storageLocal().removeItem("async-routes");
@@ -50,10 +50,17 @@ function onChange() {
     <el-card shadow="never" :style="elStyle">
       <template #header>
         <div class="card-header">
-          <span>当前角色：{{ username }}</span>
+          <span>当前角色：{{ account }}</span>
         </div>
+        <el-link
+          class="mt-2"
+          href="https://github.com/pure-admin/vue-pure-admin/blob/main/src/views/permission/page/index.vue"
+          target="_blank"
+        >
+          代码位置 src/views/permission/page/index.vue
+        </el-link>
       </template>
-      <el-select v-model="username" class="w-[160px]!" @change="onChange">
+      <el-select v-model="account" class="w-[160px]!" @change="onChange">
         <el-option
           v-for="item in options"
           :key="item.value"

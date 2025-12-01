@@ -56,6 +56,8 @@ declare global {
      * 而通过设置`activePath`指定激活菜单即可获得高亮，`activePath`为指定激活菜单的`path`）
      */
     activePath?: string;
+    /** 当前页面是否已经加载过 */
+    loaded?: boolean;
   }
 
   /**
@@ -96,6 +98,7 @@ declare global {
       showLink?: boolean;
       /** 菜单升序排序，值越高排的越后（只针对顶级路由）`可选` */
       rank?: number;
+      hidden?: boolean
     };
     /** 子路由配置项 */
     children?: Array<RouteChildrenConfigsTable>;
@@ -105,5 +108,5 @@ declare global {
 // https://router.vuejs.org/zh/guide/advanced/meta.html#typescript
 declare module "vue-router" {
   // eslint-disable-next-line
-  interface RouteMeta extends CustomizeRouteMeta {}
+  interface RouteMeta extends CustomizeRouteMeta { }
 }

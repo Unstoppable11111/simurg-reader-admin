@@ -62,4 +62,5 @@
     "v-ripple"
   ],
   "vscodeCustomCodeColor.highlightValueColor": "#b392f0",
+  "git.ignoreLimitWarning": true,
 }

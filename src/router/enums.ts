@@ -28,7 +28,9 @@ const home = 0, // 平台规定只有 home 路由的 rank 才能为 0 ，所以�
   mind = 25,
   guide = 26,
   menuoverflow = 27,
-  bannerList = 28
+  bannerList = 28,
+  sysconfig = 29,
+  bookcategory = 30
 
 export {
   home,
@@ -59,5 +61,7 @@ export {
   mind,
   guide,
   menuoverflow,
-  bannerList
+  bannerList,
+  sysconfig,
+  bookcategory
 };

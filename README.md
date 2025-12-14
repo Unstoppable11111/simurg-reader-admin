@@ -211,11 +211,7 @@ docker run -dp 8080:80  --name pure-admin vue-pure-admin
 实际使用中感觉 `Firefox` 在动画上要比别的浏览器更加丝滑，只是作者用 `Chrome` 已经习惯了，看个人爱好选择吧  
 更详细的浏览器兼容性支持请看 [Vue 支持哪些浏览器？](https://cn.vuejs.org/about/faq.html#what-browsers-does-vue-support) 和 [Vite 浏览器兼容性](https://cn.vitejs.dev/guide/build#browser-compatibility)
 
-
-
-
-
-<!-- 
+<!--
   部分菜单被我隐藏，看模板完整版菜单的访问：https://pure-admin.github.io/vue-pure-admin/#/components/drawer
   备注：
     1.目前登录是结合两个login和info接口。然后合并，某些信息可能没存到store，到时候用到在存
@@ -224,5 +220,8 @@ docker run -dp 8080:80  --name pure-admin vue-pure-admin
     4.目前鉴权部分，当前模板需要先完成鉴权页面，增删改查后方可验证鉴权，当前版本只有推荐鉴权的写法，不过应该也就是增删改查的一个列表
     5.现在暂时都是在mock中写静态页面，完成后台功能，等后续鉴权页面完成在用动态路由
     6.系统权限页面参考https://pure-admin.github.io/vue-pure-admin/#/system/user/index，个人账户等权限参考这页面，路由菜单就是4的意思，写一个表格即可
+    7.现存问题：
+      1.后续下拉框等情况统一使用字典接口
+      2.登录过期后需要重定向登录页面（如无感登录已完成是否存在这个情况未知，待定）
 
  -->

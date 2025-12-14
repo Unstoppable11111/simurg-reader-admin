@@ -7,12 +7,12 @@ export default {
   meta: {
     icon: "ri/file-info-line",
     title: $t("menus.pureBannerList"),
-    rank: bannerList,
+    rank: bannerList
   },
   children: [
     {
       path: "/bannerList/index",
-      name: "About",
+      name: "bannerList",
       component: () => import("@/views/bannerList/index.vue"),
       meta: {
         title: $t("menus.pureBannerList")

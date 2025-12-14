@@ -160,6 +160,7 @@ menus:
   pureRouterDoc: vue-router
   pureAbout: 关于
   pureBannerList: banner管理
+  pureBooklist: 书籍基本信息管理
   pureSysConfigList: 系统配置管理控制器
   pureBookCategoryList: 书籍分类管理
   pureResult: 结果页面

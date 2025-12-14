@@ -160,6 +160,7 @@ menus:
   pureRouterDoc: Vue-Router
   pureAbout: About
   pureBannerList: Banner Manage
+  pureBooklist: Book InfoList Manage
   pureSysConfigList: System Configs Manage
   pureBookCategoryList: Book Category Manage
   pureResult: Result Page

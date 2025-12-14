@@ -27,7 +27,10 @@ export default ({ mode }: ConfigEnv): UserConfigExport => {
       // 本地跨域代理 https://cn.vitejs.dev/config/server-options.html#server-proxy
       proxy: {
         "/admin": {
-          target: "http://www.sr-admin-test.tata.org.cn:8081/"
+          target: "https://ci257557ez23.vicp.fun/",
+          // target: "http://www.sr-admin-test.tata.org.cn:8081/",
+          secure: false,
+          changeOrigin: true
           // changeOrigin: true
           // rewrite: path => path.replace(/^\/admin/, "")
         }

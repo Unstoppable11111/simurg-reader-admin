@@ -6,11 +6,9 @@ import type {
   TableColumnList
 } from "@pureadmin/table";
 
-import {
-  getBannerList
-} from "@/api/banner";
+import { getBannerList } from "@/api/banner";
 import { ref, onMounted, reactive } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
+import { ElMessage } from "element-plus";
 
 // 初始查询参数（与分页联动）
 const paramsData = reactive({
@@ -32,13 +30,13 @@ function formatDate(dateStr: any): string {
 // 枚举映射（用于 formatter）
 const linkTypeMap: Record<number, string> = {
   0: "内部页面",
-  1: "外部链接",
+  1: "外部链接"
 };
 
-const statusMap: Record<number, string> = {
-  0: "禁用",
-  1: "启用"
-};
+// const statusMap: Record<number, string> = {
+//   0: "禁用",
+//   1: "启用"
+// };
 
 export function useColumns() {
   const dataList = ref<any[]>([]);
@@ -61,7 +59,7 @@ export function useColumns() {
     {
       label: "链接类型",
       prop: "linkType",
-      formatter: (row) => linkTypeMap[row.linkType] || "—"
+      formatter: row => linkTypeMap[row.linkType] || "—"
     },
 
     {
@@ -80,8 +78,16 @@ export function useColumns() {
       width: 100
     },
 
-    { label: "创建时间", prop: "createTime", formatter: (row) => formatDate(row.createTime) },
-    { label: "更新时间", prop: "updateTime", formatter: (row) => formatDate(row.updateTime) },
+    {
+      label: "创建时间",
+      prop: "createTime",
+      formatter: row => formatDate(row.createTime)
+    },
+    {
+      label: "更新时间",
+      prop: "updateTime",
+      formatter: row => formatDate(row.updateTime)
+    },
 
     // 操作列：使用插槽
     {

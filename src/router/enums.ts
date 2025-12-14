@@ -30,7 +30,8 @@ const home = 0, // 平台规定只有 home 路由的 rank 才能为 0 ，所以�
   menuoverflow = 27,
   bannerList = 28,
   sysconfig = 29,
-  bookcategory = 30
+  bookcategory = 30,
+  booklist = 31;
 
 export {
   home,
@@ -63,5 +64,6 @@ export {
   menuoverflow,
   bannerList,
   sysconfig,
-  bookcategory
+  bookcategory,
+  booklist
 };

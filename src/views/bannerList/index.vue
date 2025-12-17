@@ -3,6 +3,9 @@ import { ref, reactive } from "vue";
 import { useColumns } from "./columns";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { editBannerList, delBannerList, addBannerList } from "@/api/banner";
+// 引入公共组件
+import ReUpload from "@/views/components/ReUpload/index.vue";
+
 // 表单相关
 const dialogVisible = ref(false);
 const formRef = ref();
@@ -12,12 +15,12 @@ const isEdit = ref(false);
 const formData = reactive({
   id: null,
   bannerTitle: "",
-  imageUrl: "",
+  imageUrl: "", // 这里通过 ReUpload 自动绑定
   redirectUrl: "",
-  linkType: null, // 默认内部页面
-  roleTypes: null, // 默认关联作者
+  linkType: null,
+  roleTypes: null,
   sortOrder: 0,
-  status: 1 // 默认启用
+  status: 1
 });
 
 // 表单规则
@@ -25,7 +28,8 @@ const rules = {
   bannerTitle: [
     { required: true, message: "请输入 Banner 标题", trigger: "blur" }
   ],
-  imageUrl: [{ required: true, message: "请上传图片", trigger: "blur" }],
+  // 图片校验：因为是组件赋值，建议触发设为 change
+  imageUrl: [{ required: true, message: "请上传图片", trigger: "change" }],
   redirectUrl: [{ required: true, message: "请输入跳转地址", trigger: "blur" }],
   linkType: [{ required: true, message: "请选择链接类型", trigger: "change" }]
 };
@@ -56,7 +60,6 @@ const openAddDialog = () => {
 const openEditDialog = (row: any) => {
   isEdit.value = true;
   Object.assign(formData, { ...row });
-  // 🔧 强制转换 roleTypes 为 number（避免字符串 "2" 导致不匹配）
   if (typeof formData.roleTypes === "string") {
     formData.roleTypes = Number(formData.roleTypes);
   }
@@ -80,21 +83,16 @@ const resetForm = () => {
 const submitForm = async () => {
   try {
     await formRef.value.validate();
-
-    // TODO: 替换为你的实际 API
+    let res;
     if (isEdit.value) {
-      // await updateBanner(formData);
-      // ElMessage.success("更新成功");
-      const res = await editBannerList(formData);
+      res = await editBannerList(formData);
       if (res.code == 200) ElMessage.success("修改成功");
     } else {
-      // await addBanner(formData);
-      const res = await addBannerList(formData);
+      res = await addBannerList(formData);
       if (res.code == 200) ElMessage.success("新增成功");
     }
-
     dialogVisible.value = false;
-    refresh(); // 刷新列表
+    refresh();
   } catch (error) {
     ElMessage.error("提交失败");
   }
@@ -103,9 +101,7 @@ const submitForm = async () => {
 
 <template>
   <div>
-    <!-- 🔍 搜索区域 -->
     <el-form :inline="true" class="mb-4">
-      <!-- 搜索条件 -->
       <el-form-item label="Banner标题">
         <el-input
           v-model="searchParams.bannerTitle"
@@ -114,7 +110,6 @@ const submitForm = async () => {
           style="width: 200px"
         />
       </el-form-item>
-
       <el-form-item label="链接类型">
         <el-select
           v-model="searchParams.linkType"
@@ -126,7 +121,6 @@ const submitForm = async () => {
           <el-option :value="1" label="外部链接" />
         </el-select>
       </el-form-item>
-
       <el-form-item label="状态">
         <el-select
           v-model="searchParams.status"
@@ -138,20 +132,15 @@ const submitForm = async () => {
           <el-option :value="0" label="禁用" />
         </el-select>
       </el-form-item>
-
-      <!-- 操作按钮 -->
       <el-form-item>
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
       </el-form-item>
-
-      <!-- ➕ 新增按钮（放在最右边） -->
       <el-form-item style="margin-left: auto">
         <el-button type="primary" @click="openAddDialog">新增 Banner</el-button>
       </el-form-item>
     </el-form>
 
-    <!-- 📋 表格 -->
     <pure-table
       ref="tableRef"
       adaptive
@@ -171,55 +160,41 @@ const submitForm = async () => {
       @page-size-change="onSizeChange"
       @page-current-change="onCurrentChange"
     >
-      <!-- 图片插槽 -->
       <template #imageUrl="{ row }">
         <el-image
           preview-teleported
           :src="row.imageUrl"
-          :preview-src-list="dataList.map(v => v.imageUrl)"
+          :preview-src-list="[row.imageUrl]"
           fit="cover"
           class="w-[100px]"
         />
+        <!-- :preview-src-list="dataList.map(v => v.imageUrl)" -->
       </template>
 
       <template #roleTypes="{ row }">
         <span
           :style="{
-            color:
-              row.roleTypes == 2
-                ? '#67c23a'
-                : row.roleTypes == 3
-                  ? '#f56c6c'
-                  : '#909399',
+            color: row.roleTypes == 2 ? '#67c23a' : '#f56c6c',
             fontWeight: 'bold'
           }"
         >
           {{ row.roleTypes == 2 ? "作者可见" : "读者可见" }}
         </span>
       </template>
-
-      <!-- 状态插槽（带颜色） -->
       <template #status="{ row }">
         <span
           :style="{
-            color:
-              row.status === 1
-                ? '#67c23a'
-                : row.status === 0
-                  ? '#f56c6c'
-                  : '#909399',
+            color: row.status === 1 ? '#67c23a' : '#f56c6c',
             fontWeight: 'bold'
           }"
         >
-          {{ row.status === 1 ? "启用" : row.status === 0 ? "禁用" : "—" }}
+          {{ row.status === 1 ? "启用" : "禁用" }}
         </span>
       </template>
-
-      <!-- 操作插槽 -->
       <template #operation="{ row }">
-        <el-button type="primary" size="small" @click="openEditDialog(row)">
-          编辑
-        </el-button>
+        <el-button type="primary" size="small" @click="openEditDialog(row)"
+          >编辑</el-button
+        >
         <el-button
           type="danger"
           size="small"
@@ -232,21 +207,17 @@ const submitForm = async () => {
                 await delBannerList(row.id);
                 ElMessage.success('删除成功');
                 refresh();
-              } catch (err) {
-                if (err !== 'cancel') ElMessage.error('删除失败');
-              }
+              } catch (err) {}
             }
           "
+          >删除</el-button
         >
-          删除
-        </el-button>
       </template>
     </pure-table>
 
-    <!-- 🪟 弹窗表单 -->
     <el-dialog
-      :title="isEdit ? '编辑 Banner' : '新增 Banner'"
       v-model="dialogVisible"
+      :title="isEdit ? '编辑 Banner' : '新增 Banner'"
       width="500px"
       @close="resetForm"
     >
@@ -260,9 +231,8 @@ const submitForm = async () => {
           <el-input v-model="formData.bannerTitle" placeholder="请输入标题" />
         </el-form-item>
 
-        <el-form-item label="图片地址" prop="imageUrl">
-          <el-input v-model="formData.imageUrl" placeholder="请输入图片 URL" />
-          <!-- 建议后续替换为 el-upload -->
+        <el-form-item label="上传图片" prop="imageUrl">
+          <ReUpload v-model="formData.imageUrl" />
         </el-form-item>
 
         <el-form-item label="跳转地址" prop="redirectUrl">
@@ -271,26 +241,21 @@ const submitForm = async () => {
             placeholder="请输入跳转链接"
           />
         </el-form-item>
-
         <el-form-item label="链接类型" prop="linkType">
           <el-select v-model="formData.linkType" placeholder="请选择">
             <el-option :value="0" label="内部页面" />
             <el-option :value="1" label="外部链接" />
           </el-select>
         </el-form-item>
-
         <el-form-item label="关联角色">
-          <!-- 示例：多选角色（根据你实际需求调整） -->
           <el-select v-model="formData.roleTypes" placeholder="全部用户可见">
             <el-option :value="2" label="作者可见" />
             <el-option :value="3" label="读者可见" />
           </el-select>
         </el-form-item>
-
         <el-form-item label="排序权重">
           <el-input-number v-model="formData.sortOrder" :min="0" :max="999" />
         </el-form-item>
-
         <el-form-item label="状态">
           <el-switch
             v-model="formData.status"
@@ -301,7 +266,6 @@ const submitForm = async () => {
           />
         </el-form-item>
       </el-form>
-
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button type="primary" @click="submitForm">保存</el-button>
@@ -311,9 +275,6 @@ const submitForm = async () => {
 </template>
 
 <style scoped>
-.main-content {
-  width: auto !important;
-}
 .mb-4 {
   margin-bottom: 16px;
 }

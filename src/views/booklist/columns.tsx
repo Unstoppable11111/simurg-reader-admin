@@ -83,7 +83,13 @@ export function useColumns() {
   // 表格列配置 (使用数组字面量)
   const columns = [
     { label: "书籍ID", prop: "bookId" },
-    { label: "标题", prop: "title", minWidth: 200 },
+    {
+      label: "书籍封面图片",
+      prop: "coverImageUrl",
+      slot: "coverImageUrl",
+      width: 200
+    },
+    { label: "标题", prop: "title" },
     {
       label: "作者信息",
       prop: "authorInfo.penName",

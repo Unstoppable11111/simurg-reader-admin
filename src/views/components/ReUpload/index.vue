@@ -2,7 +2,6 @@
 import { ref, watch, computed } from "vue";
 import { getToken } from "@/utils/auth";
 import { ElMessage } from "element-plus";
-// 引入所需的图标
 import { Plus, ZoomIn, Delete } from "@element-plus/icons-vue";
 
 defineOptions({ name: "ReUpload" });
@@ -12,17 +11,15 @@ const props = defineProps({
   limit: { type: Number, default: 1 }
 });
 
-const emit = defineEmits(["update:modelValue"]);
+// 新增 loading 事件
+const emit = defineEmits(["update:modelValue", "loading"]);
 
-// 1. 统一代理前缀
 const baseUrl = import.meta.env.VITE_API_URL || "/admin";
 const uploadAction = `${baseUrl}/file/upload`;
 
-// 预览相关的响应式变量
 const previewVisible = ref(false);
 const previewImageUrl = ref("");
 
-// 2. 自动携带 Token
 const headers = computed(() => {
   const token = getToken();
   return token
@@ -32,12 +29,10 @@ const headers = computed(() => {
 
 const fileList = ref([]);
 
-// 3. 监听外部回显
 watch(
   () => props.modelValue,
   val => {
     if (val) {
-      // 避免重复赋值导致列表闪烁
       if (fileList.value.length > 0 && fileList.value[0].url === val) return;
       fileList.value = [{ name: "image", url: val }];
     } else {
@@ -47,8 +42,14 @@ watch(
   { immediate: true }
 );
 
-// 上传成功逻辑
+// 🟢 新增：上传进度/开始上传
+const handleProgress = () => {
+  emit("loading", true); // 通知父组件：正在上传，请锁定按钮
+};
+
+// 🟢 修改：上传成功逻辑
 const handleSuccess = (res: any) => {
+  emit("loading", false); // 通知父组件：上传结束，解锁按钮
   if (res.code === 200) {
     emit("update:modelValue", res.data);
     ElMessage.success("上传成功");
@@ -58,13 +59,17 @@ const handleSuccess = (res: any) => {
   }
 };
 
-// 移除图片逻辑
+// 🟢 新增：上传失败逻辑（网络错误等）
+const handleError = (err: any) => {
+  emit("loading", false); // 通知父组件：上传异常，解锁按钮
+  ElMessage.error("接口请求失败");
+};
+
 const handleRemove = () => {
   fileList.value = [];
   emit("update:modelValue", "");
 };
 
-// 🟢 处理预览逻辑
 const handlePictureCardPreview = (file: any) => {
   previewImageUrl.value = file.url;
   previewVisible.value = true;
@@ -79,7 +84,9 @@ const handlePictureCardPreview = (file: any) => {
       :headers="headers"
       list-type="picture-card"
       :limit="limit"
+      :on-progress="handleProgress"
       :on-success="handleSuccess"
+      :on-error="handleError"
       :class="{ 'hide-add': fileList.length >= limit }"
     >
       <el-icon><Plus /></el-icon>
@@ -122,12 +129,10 @@ const handlePictureCardPreview = (file: any) => {
 </template>
 
 <style scoped>
-/* 当有图片时隐藏上传按钮 */
 :deep(.hide-add .el-upload--picture-card) {
   display: none;
 }
 
-/* 统一缩略图显示尺寸 */
 :deep(.el-upload-list--picture-card .el-upload-list__item),
 :deep(.el-upload--picture-card) {
   width: 100px;

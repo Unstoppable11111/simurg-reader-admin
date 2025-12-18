@@ -7,6 +7,7 @@ import { buildHierarchyTree } from "@/utils/tree";
 import remainingRouter from "./modules/remaining";
 import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
 import { usePermissionStoreHook } from "@/store/modules/permission";
+import { useDictStoreHook } from "@/store/modules/dict"; // [新增] 引入字典Store
 import {
   isUrl,
   openLink,
@@ -38,63 +39,40 @@ import {
   multipleTabsKey
 } from "@/utils/auth";
 
-/** 自动导入全部静态路由，无需再手动引入！匹配 src/router/modules 目录（任何嵌套级别）中具有 .ts 扩展名的所有文件，除了 remaining.ts 文件
- * 如何匹配所有文件请看：https://github.com/mrmlnc/fast-glob#basic-syntax
- * 如何排除文件请看：https://cn.vitejs.dev/guide/features.html#negative-patterns
- */
+/** 自动导入全部静态路由 */
 const modules: Record<string, any> = import.meta.glob(
   ["./modules/**/*.ts", "!./modules/**/remaining.ts"],
-  {
-    eager: true
-  }
+  { eager: true }
 );
-console.log(modules, 'modules=========');
-
 
 /** 原始静态路由 ,过滤hidden菜单*/
 const routes: RouteRecordRaw[] = [];
 Object.keys(modules).forEach(key => {
   const mod = modules[key].default;
-
-  if (!mod) return; // 如果 default 是 undefined，跳过
-
-  // 情况1: mod 是一个对象，且有 path 字段 → 它是一个“直接路由对象”
+  if (!mod) return;
   if (typeof mod === "object" && mod.path !== undefined) {
-    // 直接作为单个路由使用
-    if (!mod.meta?.hidden) {
-      routes.push(mod);
-    }
+    if (!mod.meta?.hidden) routes.push(mod);
     return;
   }
-
-  // 情况2: mod 是一个对象，但没有 path → 可能是 { key: route } 格式
   if (typeof mod === "object") {
-    const routeList = Object.values(mod); // 提取所有值
+    const routeList = Object.values(mod);
     for (const route of routeList) {
-      if (
-        route &&
-        typeof route === "object" &&
-        !route.meta?.hidden
-      ) {
-        routes.push(route);
+      if (route && typeof route === "object" && !route.meta?.hidden) {
+        routes.push(route as RouteRecordRaw);
       }
     }
     return;
   }
-
-  // 情况3: 不是对象 → 忽略
-  console.warn(`[Router] Invalid module format: ${key}`);
 });
 
-/** 导出处理后的静态路由（三级及以上的路由全部拍成二级） */
+/** 导出处理后的静态路由 */
 export const constantRoutes: Array<RouteRecordRaw> = formatTwoStageRoutes(
   formatFlatteningRoutes(buildHierarchyTree(ascending(routes.flat(Infinity))))
 );
 
-/** 初始的静态路由，用于退出登录时重置路由 */
 const initConstantRoutes: Array<RouteRecordRaw> = cloneDeep(constantRoutes);
 
-/** 用于渲染菜单，保持原始层级 */
+/** 用于渲染菜单 */
 export const constantMenus: Array<RouteComponent> = ascending(
   routes.flat(Infinity)
 ).concat(...remainingRouter);
@@ -111,28 +89,22 @@ export const router: Router = createRouter({
   strict: true,
   scrollBehavior(to, from, savedPosition) {
     return new Promise(resolve => {
-      if (savedPosition) {
-        return savedPosition;
-      } else {
-        if (from.meta.saveSrollTop) {
-          const top: number =
-            document.documentElement.scrollTop || document.body.scrollTop;
-          resolve({ left: 0, top });
-        }
+      if (savedPosition) return savedPosition;
+      if (from.meta.saveSrollTop) {
+        const top: number =
+          document.documentElement.scrollTop || document.body.scrollTop;
+        resolve({ left: 0, top });
       }
     });
   }
 });
 
-/** 记录已经加载的页面路径 */
 const loadedPaths = new Set<string>();
 
-/** 重置已加载页面记录 */
 export function resetLoadedPaths() {
   loadedPaths.clear();
 }
 
-/** 重置路由 */
 export function resetRouter() {
   router.clearRoutes();
   for (const route of initConstantRoutes.concat(...(remainingRouter as any))) {
@@ -147,10 +119,10 @@ export function resetRouter() {
 
 /** 路由白名单 */
 const whiteList = ["/login"];
-
 const { VITE_HIDE_HOME } = import.meta.env;
 
-router.beforeEach((to: ToRouteType, _from, next) => {
+// 注意：这里将回调改为 async，以便支持 await 字典加载
+router.beforeEach(async (to: ToRouteType, _from, next) => {
   to.meta.loaded = loadedPaths.has(to.path);
 
   if (!to.meta.loaded) {
@@ -159,37 +131,49 @@ router.beforeEach((to: ToRouteType, _from, next) => {
 
   if (to.meta?.keepAlive) {
     handleAliveRoute(to, "add");
-    // 页面整体刷新和点击标签页刷新
     if (_from.name === undefined || _from.name === "Redirect") {
       handleAliveRoute(to);
     }
   }
+
   const userInfo = storageLocal().getItem<DataInfo<number>>(userKey);
   const externalLink = isUrl(to?.name as string);
+
   if (!externalLink) {
     to.matched.some(item => {
       if (!item.meta.title) return "";
       const Title = getConfig().Title;
-      if (Title)
-        document.title = `${transformI18n(item.meta.title)} | ${Title}`;
-      else document.title = transformI18n(item.meta.title);
+      document.title = Title
+        ? `${transformI18n(item.meta.title)} | ${Title}`
+        : transformI18n(item.meta.title);
     });
   }
-  /** 如果已经登录并存在登录信息后不能跳转到路由白名单，而是继续保持在当前页面 */
+
+  /** 路由跳转控制函数 */
   function toCorrectRoute() {
     whiteList.includes(to.fullPath) ? next(_from.fullPath) : next();
   }
+
+  // --- 登录状态判断 ---
   if (Cookies.get(multipleTabsKey) && userInfo) {
-    // 无权限跳转403页面
+    // [关键注入]：如果用户已登录，且字典尚未加载，则在此处进行阻塞式加载
+    // 这样能确保无论用户是登录跳转还是F5刷新，页面渲染前字典数据一定在内存中
+    const dictStore = useDictStoreHook();
+    if (!dictStore.isLoaded) {
+      await dictStore.fetchAllDicts();
+    }
+
     if (to.meta?.roles && !isOneOfArray(to.meta?.roles, userInfo?.roles)) {
       next({ path: "/error/403" });
+      return;
     }
-    // 开启隐藏首页后在浏览器地址栏手动输入首页welcome路由则跳转到404页面
+
     if (VITE_HIDE_HOME === "true" && to.fullPath === "/welcome") {
       next({ path: "/error/404" });
+      return;
     }
+
     if (_from?.name) {
-      // name为超链接
       if (externalLink) {
         openLink(to?.name as string);
         NProgress.done();
@@ -197,7 +181,7 @@ router.beforeEach((to: ToRouteType, _from, next) => {
         toCorrectRoute();
       }
     } else {
-      // 刷新
+      // 页面刷新逻辑：如果没有权限菜单信息，则初始化路由
       if (
         usePermissionStoreHook().wholeMenus.length === 0 &&
         to.path !== "/login"
@@ -210,33 +194,25 @@ router.beforeEach((to: ToRouteType, _from, next) => {
               router.options.routes[0].children
             );
             getTopMenu(true);
-            // query、params模式路由传参数的标签页不在此处处理
             if (route && route.meta?.title) {
-              if (isAllEmpty(route.parentId) && route.meta?.backstage) {
-                // 此处为动态顶级路由（目录）
-                const { path, name, meta } = route.children[0];
-                useMultiTagsStoreHook().handleTags("push", {
-                  path,
-                  name,
-                  meta
-                });
-              } else {
-                const { path, name, meta } = route;
-                useMultiTagsStoreHook().handleTags("push", {
-                  path,
-                  name,
-                  meta
-                });
-              }
+              const target =
+                isAllEmpty(route.parentId) && route.meta?.backstage
+                  ? route.children[0]
+                  : route;
+              useMultiTagsStoreHook().handleTags("push", {
+                path: target.path,
+                name: target.name,
+                meta: target.meta
+              });
             }
           }
-          // 确保动态路由完全加入路由列表并且不影响静态路由（注意：动态路由刷新时router.beforeEach可能会触发两次，第一次触发动态路由还未完全添加，第二次动态路由才完全添加到路由列表，如果需要在router.beforeEach做一些判断可以在to.name存在的条件下去判断，这样就只会触发一次）
           if (isAllEmpty(to.name)) router.push(to.fullPath);
         });
       }
       toCorrectRoute();
     }
   } else {
+    // --- 未登录状态判断 ---
     if (to.path !== "/login") {
       if (whiteList.indexOf(to.path) !== -1) {
         next();

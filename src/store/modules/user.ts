@@ -13,6 +13,7 @@ import {
   getLogin,
   refreshTokenApi
 } from "@/api/user";
+import { useDictStoreHook } from "./dict";
 import { useMultiTagsStoreHook } from "./multiTags";
 import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
 
@@ -80,9 +81,11 @@ export const useUserStore = defineStore("pure-user", {
       return new Promise<UserResult>((resolve, reject) => {
         getLogin(data)
           .then(data => {
-            console.log(data, '登录data----------');
+            // console.log(data, '登录data----------');
 
             if (data?.code === 200) setToken(data.data as any);
+            // 2. 登录成功后立即调用字典接口存入内存
+            useDictStoreHook().fetchAllDicts();
             resolve(data);
           })
           .catch(error => {

@@ -7,7 +7,7 @@ import {
   delCategoryList,
   addCategoryList
 } from "@/api/bookcategory";
-// 引入你之前创建的上传组件
+// 引入你创建的上传组件
 import ReUpload from "@/views/components/ReUpload/index.vue";
 
 // 1. 从 useColumns 获取数据和方法
@@ -30,6 +30,7 @@ const {
 const dialogVisible = ref(false);
 const formRef = ref();
 const isEdit = ref(false);
+const isUploading = ref(false); // 新增：全局图片上传状态（支持多个上传组件共用）
 
 // 2. 表单数据
 const formData = reactive({
@@ -52,7 +53,7 @@ const rules = {
   sortOrder: [{ required: true, message: "请输入排序序号", trigger: "blur" }]
 };
 
-// --- 预览优化：计算列表内所有的图片用于预览浏览 ---
+// --- 预览优化 ---
 const iconPreviewList = computed(() =>
   dataList.value.map(v => v.iconImageUrl).filter(Boolean)
 );
@@ -70,6 +71,7 @@ const openAddDialog = () => {
 // 打开编辑弹窗
 const openEditDialog = (row: any) => {
   isEdit.value = true;
+  resetForm(); // 先重置
   Object.assign(formData, {
     categoryId: Number(row.categoryId),
     categoryName: row.categoryName,
@@ -91,12 +93,20 @@ const resetForm = () => {
     categoryDescription: "",
     sortOrder: 0
   });
+  isUploading.value = false; // 确保关闭弹窗或重置时，上传状态也重置
   if (formRef.value) formRef.value.clearValidate();
 };
 
 // 提交表单
 const submitForm = async () => {
   if (!formRef.value) return;
+
+  // 🔴 逻辑拦截：如果图片正在上传中，禁止提交
+  if (isUploading.value) {
+    ElMessage.warning("图片正在上传中，请稍后...");
+    return;
+  }
+
   try {
     await formRef.value.validate();
     const apiCall = isEdit.value ? editCategoryList : addCategoryList;
@@ -224,14 +234,20 @@ const submitForm = async () => {
         </el-form-item>
 
         <el-form-item label="分类 Icon" prop="iconImageUrl">
-          <ReUpload v-model="formData.iconImageUrl" />
+          <ReUpload
+            v-model="formData.iconImageUrl"
+            @loading="val => (isUploading = val)"
+          />
           <div class="text-xs text-gray-400 mt-1">
             建议尺寸 100x100，支持 png/jpg
           </div>
         </el-form-item>
 
         <el-form-item label="分类封面" prop="coverImageUrl">
-          <ReUpload v-model="formData.coverImageUrl" />
+          <ReUpload
+            v-model="formData.coverImageUrl"
+            @loading="val => (isUploading = val)"
+          />
         </el-form-item>
 
         <el-form-item label="分类描述" prop="categoryDescription">
@@ -255,7 +271,14 @@ const submitForm = async () => {
 
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存数据</el-button>
+        <el-button
+          type="primary"
+          :loading="isUploading"
+          :disabled="isUploading"
+          @click="submitForm"
+        >
+          {{ isUploading ? "上传中..." : "保存数据" }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

@@ -1,8 +1,8 @@
 <script setup>
 import { ref, reactive, computed } from "vue";
 import { useColumns } from "./columns";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { ArrowDown } from "@element-plus/icons-vue"; // 确保引入了图标
+import { ElMessage } from "element-plus";
+import { ArrowDown } from "@element-plus/icons-vue";
 import dayjs from "dayjs";
 import {
   adminCreateBook,
@@ -11,7 +11,6 @@ import {
   adminExportBook,
   adminImportBook
 } from "@/api/booklist";
-// 1. 引入上传组件
 import ReUpload from "@/views/components/ReUpload/index.vue";
 
 const {
@@ -19,7 +18,6 @@ const {
   columns,
   dataList,
   pagination,
-  loadingConfig,
   adaptiveConfig,
   onSizeChange,
   onCurrentChange,
@@ -29,32 +27,26 @@ const {
   searchParams,
   handleSearch,
   handleReset,
-  STATUS_MAP,
+  dictData,
+  getDictLabel,
   categoryOptions,
-  categoryLoading,
   remoteMethodCategory
 } = useColumns();
 
-// 表单相关
+// --- 状态控制 ---
 const dialogVisible = ref(false);
 const formRef = ref();
 const isEdit = ref(false);
 const loadingDetail = ref(false);
+const isUploading = ref(false); // 控制上传状态的核心变量
+const importRef = ref(null);
 
-// 审核状态选项
-const bookStatusOptions = [
-  { label: "未发布", value: 0 },
-  { label: "审核中", value: 1 },
-  { label: "已发布", value: 2 },
-  { label: "已下架", value: 3 }
-];
-
-// 计算列表内所有封面的预览数组
+// 封面预览
 const coverPreviewList = computed(() =>
   dataList.value.map(v => v.coverImageUrl).filter(Boolean)
 );
 
-// 表单数据
+// 表单数据初始化
 const formData = reactive({
   bookId: null,
   title: "",
@@ -63,11 +55,6 @@ const formData = reactive({
   language: "zh",
   isFree: 0,
   coverImageUrl: "",
-  chapterTitle: "",
-  chapterContent: "",
-  authorTestimonial: "",
-  publishDate: "",
-  isSigned: 0,
   categoryIdList: []
 });
 
@@ -78,55 +65,24 @@ const rules = {
   coverImageUrl: [
     { required: true, message: "请上传封面图片", trigger: "change" }
   ],
-  language: [{ required: true, message: "请输入作品语言", trigger: "blur" }],
   categoryIdList: [
-    {
-      required: true,
-      message: "请至少选择一个作品分类",
-      trigger: "change",
-      validator: (rule, value, callback) => {
-        if (!value || value.length === 0)
-          return callback(new Error("请至少选择一个作品分类"));
-        callback();
-      }
-    }
-  ],
-  chapterTitle: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isEdit.value && !value)
-          return callback(new Error("请输入第一章节标题"));
-        callback();
-      },
-      trigger: "blur"
-    }
-  ],
-  chapterContent: [
-    {
-      validator: (rule, value, callback) => {
-        if (!isEdit.value && !value)
-          return callback(new Error("请输入第一章节内容"));
-        callback();
-      },
-      trigger: "blur"
-    }
+    { required: true, message: "请至少选择一个作品分类", trigger: "change" }
   ]
 };
 
+// 重置表单逻辑
 const resetForm = () => {
-  formData.bookId = null;
-  formData.title = "";
-  formData.description = "";
-  formData.protagonistIntroduction = "";
-  formData.coverImageUrl = "";
-  formData.language = "zh";
-  formData.isFree = 0;
-  formData.chapterTitle = "";
-  formData.chapterContent = "";
-  formData.authorTestimonial = "";
-  formData.publishDate = "";
-  formData.isSigned = 0;
-  formData.categoryIdList = [];
+  Object.assign(formData, {
+    bookId: null,
+    title: "",
+    description: "",
+    protagonistIntroduction: "",
+    language: "zh",
+    isFree: 0,
+    coverImageUrl: "",
+    categoryIdList: []
+  });
+  isUploading.value = false; // 关闭弹窗时务必重置上传状态
   if (formRef.value) formRef.value.clearValidate();
 };
 
@@ -141,33 +97,15 @@ const openEditDialog = async row => {
   resetForm();
   dialogVisible.value = true;
   loadingDetail.value = true;
-
   try {
     const res = await getAdminBookDetail(row.bookId);
     if (res.code === 200 && res.data) {
       const detail = res.data;
-      const categoryIdArray = detail.bookCategoryResponseList
-        ? detail.bookCategoryResponseList
-            .map(c => c.categoryId)
-            .filter(id => id !== undefined)
-        : [];
-
       Object.assign(formData, {
-        bookId: detail.bookId,
-        title: detail.title,
-        description: detail.description,
-        protagonistIntroduction: detail.protagonistIntroduction || "",
-        coverImageUrl: detail.coverImageUrl,
-        language: detail.languagestring || detail.language || "zh",
-        isFree: detail.isFree,
-        isSigned: detail.isSigned,
-        publishDate: detail.publishDate
-          ? dayjs(detail.publishDate).format("YYYY-MM-DD HH:mm:ss")
-          : "",
-        authorTestimonial: detail.authorTestimonial || "",
-        categoryIdList: categoryIdArray
+        ...detail,
+        categoryIdList:
+          detail.bookCategoryResponseList?.map(c => c.categoryId) || []
       });
-      if (formRef.value) formRef.value.clearValidate();
     }
   } catch (error) {
     ElMessage.error("获取详情失败");
@@ -176,38 +114,57 @@ const openEditDialog = async row => {
   }
 };
 
+/**
+ * 提交表单
+ */
 const submitForm = async () => {
   if (!formRef.value) return;
+
+  // 核心拦截：如果图片正在上传，拒绝提交请求
+  if (isUploading.value) {
+    ElMessage.warning("封面图片正在上传中，请稍后再试");
+    return;
+  }
+
   try {
     await formRef.value.validate();
-    if (isEdit.value) {
-      const updateData = {
-        ...formData,
-        publishDate: formData.publishDate
-          ? new Date(formData.publishDate).getTime()
-          : null
-      };
-      const res = await adminUpdateBookInfo(updateData);
-      if (res.code === 200) ElMessage.success("修改成功");
-    } else {
-      const res = await adminCreateBook(formData);
-      if (res.code == 200) ElMessage.success(`新增成功`);
+    const res = isEdit.value
+      ? await adminUpdateBookInfo(formData)
+      : await adminCreateBook(formData);
+
+    if (res.code === 200) {
+      ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
+      dialogVisible.value = false;
+      refresh();
     }
-    dialogVisible.value = false;
-    refresh();
-  } catch (error) {}
+  } catch (error) {
+    console.error("表单校验失败", error);
+  }
 };
 
-// 导入导出逻辑 (保持你原有的不变)
-const importRef = ref(null);
+// 导出与导入逻辑
 const handleExport = async () => {
-  /* 保持原样 */
+  const ids = dataList.value.map(item => item.bookId).filter(Boolean);
+  if (ids.length === 0) return ElMessage.warning("无数据可导出");
+  const response = await adminExportBook(ids);
+  const blob = new Blob([response.data], { type: "application/vnd.ms-excel" });
+  const link = document.createElement("a");
+  link.href = window.URL.createObjectURL(blob);
+  link.download = `书籍列表_${dayjs().format("YYYYMMDD")}.xlsx`;
+  link.click();
 };
-const handleImport = () => {
-  importRef.value?.click();
-};
+
 const uploadFile = async event => {
-  /* 保持原样 */
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await adminImportBook(fd);
+  if (res.code === 200) {
+    ElMessage.success("导入成功");
+    refresh();
+  }
+  event.target.value = "";
 };
 </script>
 
@@ -219,16 +176,9 @@ const uploadFile = async event => {
           v-model="searchParams.title"
           placeholder="请输入标题"
           clearable
-          @keyup.enter="handleSearch"
         />
       </el-form-item>
-      <el-form-item label="作者ID">
-        <el-input
-          v-model.number="searchParams.authorId"
-          placeholder="请输入作者ID"
-          clearable
-        />
-      </el-form-item>
+
       <el-form-item label="书籍状态">
         <el-select
           v-model="searchParams.bookStatus"
@@ -237,13 +187,14 @@ const uploadFile = async event => {
           style="width: 120px"
         >
           <el-option
-            v-for="item in bookStatusOptions"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+            v-for="item in dictData.bookStatus"
+            :key="item.key"
+            :label="item.value"
+            :value="item.key"
           />
         </el-select>
       </el-form-item>
+
       <el-form-item label="作品分类">
         <el-select
           v-model="searchParams.categoryId"
@@ -251,7 +202,6 @@ const uploadFile = async event => {
           clearable
           filterable
           remote
-          :loading="categoryLoading"
           :remote-method="remoteMethodCategory"
           style="width: 180px"
         >
@@ -263,14 +213,16 @@ const uploadFile = async event => {
           />
         </el-select>
       </el-form-item>
+
       <el-form-item>
         <el-button type="primary" @click="handleSearch">搜索</el-button>
         <el-button @click="handleReset">重置</el-button>
       </el-form-item>
+
       <el-form-item style="margin-left: auto">
         <el-button type="primary" @click="openAddDialog">新增书籍</el-button>
         <el-button type="success" @click="handleExport">导出</el-button>
-        <el-button type="info" @click="handleImport">导入</el-button>
+        <el-button type="info" @click="importRef.click()">导入</el-button>
         <input
           ref="importRef"
           type="file"
@@ -285,7 +237,6 @@ const uploadFile = async event => {
       adaptive
       :adaptiveConfig="adaptiveConfig"
       row-key="bookId"
-      alignWhole="center"
       :loading="loading"
       :data="dataList"
       :columns="columns"
@@ -311,18 +262,13 @@ const uploadFile = async event => {
           v-model="row.serialStatus"
           :active-value="0"
           :inactive-value="1"
-          active-text="连载中"
-          inactive-text="已完结"
+          :active-text="getDictLabel('bookSerialStatus', 0)"
+          :inactive-text="getDictLabel('bookSerialStatus', 1)"
           inline-prompt
           style="
 
 --el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
-          :before-change="
-            () =>
-              handleUpdateStatus(row, {
-                serialStatus: row.serialStatus === 0 ? 1 : 0
-              })
-          "
+          @change="val => handleUpdateStatus(row, { serialStatus: val })"
         />
       </template>
 
@@ -333,33 +279,31 @@ const uploadFile = async event => {
 
         <el-dropdown
           trigger="click"
-          style="margin-left: 4px"
+          style="margin-left: 8px"
           @command="cmd => handleUpdateStatus(row, { bookStatus: cmd })"
         >
           <el-button
             size="small"
             :type="
-              row.bookStatus === 2
+              String(row.bookStatus) === '2'
                 ? 'success'
-                : row.bookStatus === 3
+                : String(row.bookStatus) === '3'
                   ? 'danger'
-                  : row.bookStatus === 1
-                    ? 'warning'
-                    : 'info'
+                  : 'warning'
             "
           >
-            {{ STATUS_MAP.BOOK[row.bookStatus] || "未知" }}
+            {{ getDictLabel("bookStatus", row.bookStatus) }}
             <el-icon class="el-icon--right"><ArrowDown /></el-icon>
           </el-button>
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
-                v-for="item in bookStatusOptions"
-                :key="item.value"
-                :command="item.value"
-                :disabled="item.value === row.bookStatus"
+                v-for="item in dictData.bookStatus"
+                :key="item.key"
+                :command="item.key"
+                :disabled="String(item.key) === String(row.bookStatus)"
               >
-                切换至: {{ item.label }}
+                切换至: {{ item.value }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -368,19 +312,8 @@ const uploadFile = async event => {
         <el-button
           type="danger"
           size="small"
-          style="margin-left: 4px"
-          @click="
-            async () => {
-              try {
-                await ElMessageBox.confirm(
-                  `确定删除书籍《${row.title}》？`,
-                  '提示',
-                  { type: 'warning' }
-                );
-                await handleDeleteBook(row.bookId);
-              } catch (err) {}
-            }
-          "
+          style="margin-left: 8px"
+          @click="handleDeleteBook(row.bookId)"
         >
           删除
         </el-button>
@@ -405,15 +338,17 @@ const uploadFile = async event => {
           </el-form-item>
 
           <el-form-item label="封面图片" prop="coverImageUrl">
-            <ReUpload v-model="formData.coverImageUrl" />
+            <ReUpload
+              v-model="formData.coverImageUrl"
+              @loading="val => (isUploading = val)"
+            />
           </el-form-item>
 
           <el-form-item label="作品分类" prop="categoryIdList">
             <el-select
               v-model="formData.categoryIdList"
-              placeholder="多选分类"
-              filterable
               multiple
+              filterable
               style="width: 100%"
             >
               <el-option
@@ -432,61 +367,26 @@ const uploadFile = async event => {
               :rows="3"
             />
           </el-form-item>
-
-          <el-form-item label="主角介绍" prop="protagonistIntroduction">
-            <el-input
-              v-model="formData.protagonistIntroduction"
-              type="textarea"
-              :rows="2"
-            />
-          </el-form-item>
-
-          <el-form-item label="是否免费" prop="isFree">
-            <el-radio-group v-model="formData.isFree">
-              <el-radio :value="1">是</el-radio>
-              <el-radio :value="0">否</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <el-form-item label="是否签约" prop="isSigned">
-            <el-radio-group v-model="formData.isSigned">
-              <el-radio :value="1">是</el-radio>
-              <el-radio :value="0">否</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <el-form-item label="作品语言" prop="language">
-            <el-input v-model="formData.language" />
-          </el-form-item>
-
-          <el-form-item v-if="isEdit" label="发布日期" prop="publishDate">
-            <el-date-picker
-              v-model="formData.publishDate"
-              type="datetime"
-              value-format="YYYY-MM-DD HH:mm:ss"
-              style="width: 100%"
-            />
-          </el-form-item>
-
-          <div v-if="!isEdit">
-            <el-divider>创建第一章</el-divider>
-            <el-form-item label="章节标题" prop="chapterTitle">
-              <el-input v-model="formData.chapterTitle" />
-            </el-form-item>
-            <el-form-item label="章节内容" prop="chapterContent">
-              <el-input
-                v-model="formData.chapterContent"
-                type="textarea"
-                :rows="5"
-              />
-            </el-form-item>
-          </div>
         </el-form>
       </div>
+
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <el-button
+          type="primary"
+          :loading="isUploading"
+          :disabled="isUploading"
+          @click="submitForm"
+        >
+          {{ isUploading ? "图片上传中..." : "确定保存" }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
+
+<style scoped>
+.search-form {
+  margin-bottom: 16px;
+}
+</style>

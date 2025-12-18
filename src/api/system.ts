@@ -19,6 +19,23 @@ type ResultTable = {
   };
 };
 
+type Dictionary = {
+  success: boolean;
+  data: {
+    userRole: Array<any>;
+    status: Array<any>;
+    rankingType: Array<any>;
+    authType: Array<any>;
+    bookChaptersStatus: Array<any>;
+    bookCommentStatus: Array<any>;
+    bookSerialStatus: Array<any>;
+    bookStatus: Array<any>;
+    bookTagType: Array<any>;
+    readingStatus: Array<any>;
+    signingStatus: Array<any>;
+  };
+};
+
 /** 获取系统管理-用户管理列表 */
 export const getUserList = (data?: object) => {
   return http.request<ResultTable>("post", "/user", { data });
@@ -82,4 +99,9 @@ export const getRoleMenu = (data?: object) => {
 /** 获取角色管理-权限-菜单权限-根据角色 id 查对应菜单 */
 export const getRoleMenuIds = (data?: object) => {
   return http.request<Result>("post", "/role-menu-ids", { data });
+};
+
+/** 获取字典列表 */
+export const getDictionaryList = () => {
+  return http.request<Dictionary>("post", "/admin/dictionary/list");
 };

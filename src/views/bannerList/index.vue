@@ -10,12 +10,13 @@ import ReUpload from "@/views/components/ReUpload/index.vue";
 const dialogVisible = ref(false);
 const formRef = ref();
 const isEdit = ref(false);
+const isUploading = ref(false); // 🟢 新增：图片上传状态
 
-// 表单数据（与 API 字段对齐）
+// 表单数据
 const formData = reactive({
   id: null,
   bannerTitle: "",
-  imageUrl: "", // 这里通过 ReUpload 自动绑定
+  imageUrl: "",
   redirectUrl: "",
   linkType: null,
   roleTypes: null,
@@ -28,7 +29,6 @@ const rules = {
   bannerTitle: [
     { required: true, message: "请输入 Banner 标题", trigger: "blur" }
   ],
-  // 图片校验：因为是组件赋值，建议触发设为 change
   imageUrl: [{ required: true, message: "请上传图片", trigger: "change" }],
   redirectUrl: [{ required: true, message: "请输入跳转地址", trigger: "blur" }],
   linkType: [{ required: true, message: "请选择链接类型", trigger: "change" }]
@@ -59,6 +59,7 @@ const openAddDialog = () => {
 // ✏️ 打开编辑弹窗
 const openEditDialog = (row: any) => {
   isEdit.value = true;
+  resetForm(); // 先重置状态
   Object.assign(formData, { ...row });
   if (typeof formData.roleTypes === "string") {
     formData.roleTypes = Number(formData.roleTypes);
@@ -76,11 +77,20 @@ const resetForm = () => {
   formData.roleTypes = null;
   formData.sortOrder = 0;
   formData.status = 1;
+  isUploading.value = false; // 🟢 重置上传状态
   formRef.value?.clearValidate();
 };
 
 // 💾 提交表单
 const submitForm = async () => {
+  if (!formRef.value) return;
+
+  // 🟢 拦截逻辑：图片上传中不允许提交
+  if (isUploading.value) {
+    ElMessage.warning("图片正在上传中，请稍后...");
+    return;
+  }
+
   try {
     await formRef.value.validate();
     let res;
@@ -94,7 +104,8 @@ const submitForm = async () => {
     dialogVisible.value = false;
     refresh();
   } catch (error) {
-    ElMessage.error("提交失败");
+    // 校验失败或接口报错
+    console.error(error);
   }
 };
 </script>
@@ -166,9 +177,8 @@ const submitForm = async () => {
           :src="row.imageUrl"
           :preview-src-list="[row.imageUrl]"
           fit="cover"
-          class="w-[100px]"
+          class="w-[100px] h-[50px] rounded"
         />
-        <!-- :preview-src-list="dataList.map(v => v.imageUrl)" -->
       </template>
 
       <template #roleTypes="{ row }">
@@ -210,8 +220,9 @@ const submitForm = async () => {
               } catch (err) {}
             }
           "
-          >删除</el-button
         >
+          删除
+        </el-button>
       </template>
     </pure-table>
 
@@ -232,7 +243,10 @@ const submitForm = async () => {
         </el-form-item>
 
         <el-form-item label="上传图片" prop="imageUrl">
-          <ReUpload v-model="formData.imageUrl" />
+          <ReUpload
+            v-model="formData.imageUrl"
+            @loading="val => (isUploading = val)"
+          />
         </el-form-item>
 
         <el-form-item label="跳转地址" prop="redirectUrl">
@@ -242,13 +256,21 @@ const submitForm = async () => {
           />
         </el-form-item>
         <el-form-item label="链接类型" prop="linkType">
-          <el-select v-model="formData.linkType" placeholder="请选择">
+          <el-select
+            v-model="formData.linkType"
+            placeholder="请选择"
+            class="w-full"
+          >
             <el-option :value="0" label="内部页面" />
             <el-option :value="1" label="外部链接" />
           </el-select>
         </el-form-item>
         <el-form-item label="关联角色">
-          <el-select v-model="formData.roleTypes" placeholder="全部用户可见">
+          <el-select
+            v-model="formData.roleTypes"
+            placeholder="全部用户可见"
+            class="w-full"
+          >
             <el-option :value="2" label="作者可见" />
             <el-option :value="3" label="读者可见" />
           </el-select>
@@ -268,7 +290,14 @@ const submitForm = async () => {
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <el-button
+          type="primary"
+          :loading="isUploading"
+          :disabled="isUploading"
+          @click="submitForm"
+        >
+          {{ isUploading ? "上传中..." : "保存" }}
+        </el-button>
       </template>
     </el-dialog>
   </div>

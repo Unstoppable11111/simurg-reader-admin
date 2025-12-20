@@ -1,17 +1,21 @@
 <script setup>
-import { ref, reactive, computed } from "vue";
+import { ref, reactive, computed, onMounted } from "vue"; // 🟢 增加 onMounted
+import { useRouter } from "vue-router";
 import { useColumns } from "./columns";
 import { ElMessage } from "element-plus";
-import { ArrowDown } from "@element-plus/icons-vue";
+import { ArrowDown, Reading } from "@element-plus/icons-vue";
 import dayjs from "dayjs";
 import {
   adminCreateBook,
   adminUpdateBookInfo,
   getAdminBookDetail,
   adminExportBook,
-  adminImportBook
+  adminImportBook,
+  adminBookdown_template
 } from "@/api/booklist";
 import ReUpload from "@/views/components/ReUpload/index.vue";
+
+const router = useRouter();
 
 const {
   loading,
@@ -38,10 +42,21 @@ const dialogVisible = ref(false);
 const formRef = ref();
 const isEdit = ref(false);
 const loadingDetail = ref(false);
-const isUploading = ref(false); // 控制上传状态的核心变量
+const isUploading = ref(false);
 const importRef = ref(null);
 
-// 封面预览
+// 跳转章节管理
+const goToChapters = row => {
+  router.push({
+    name: "chapter",
+    query: {
+      bookId: String(row.bookId),
+      bookTitle: row.title
+    }
+  });
+};
+
+// 封面预览列表
 const coverPreviewList = computed(() =>
   dataList.value.map(v => v.coverImageUrl).filter(Boolean)
 );
@@ -82,7 +97,7 @@ const resetForm = () => {
     coverImageUrl: "",
     categoryIdList: []
   });
-  isUploading.value = false; // 关闭弹窗时务必重置上传状态
+  isUploading.value = false;
   if (formRef.value) formRef.value.clearValidate();
 };
 
@@ -90,6 +105,17 @@ const openAddDialog = () => {
   isEdit.value = false;
   resetForm();
   dialogVisible.value = true;
+};
+
+const downloadTemplate = async () => {
+  const res = await adminBookdown_template();
+  if (res.code === 200 && res.data) {
+    const link = document.createElement("a");
+    link.href = res.data; // 后端给的绝对路径
+    link.style.display = "none";
+    // 关键：不设置 target="_blank" 就不会跳新窗口
+    link.click();
+  }
 };
 
 const openEditDialog = async row => {
@@ -115,14 +141,12 @@ const openEditDialog = async row => {
 };
 
 /**
- * 提交表单
+ * 提交保存
  */
 const submitForm = async () => {
   if (!formRef.value) return;
-
-  // 核心拦截：如果图片正在上传，拒绝提交请求
   if (isUploading.value) {
-    ElMessage.warning("封面图片正在上传中，请稍后再试");
+    ElMessage.warning("图片正在上传中");
     return;
   }
 
@@ -138,11 +162,11 @@ const submitForm = async () => {
       refresh();
     }
   } catch (error) {
-    console.error("表单校验失败", error);
+    console.error("提交失败", error);
   }
 };
 
-// 导出与导入逻辑
+// 导出
 const handleExport = async () => {
   const ids = dataList.value.map(item => item.bookId).filter(Boolean);
   if (ids.length === 0) return ElMessage.warning("无数据可导出");
@@ -154,8 +178,11 @@ const handleExport = async () => {
   link.click();
 };
 
+// 导入
 const uploadFile = async event => {
   const file = event.target.files?.[0];
+  console.log(file, "file0-----------");
+
   if (!file) return;
   const fd = new FormData();
   fd.append("file", file);
@@ -169,8 +196,12 @@ const uploadFile = async event => {
 </script>
 
 <template>
-  <div class="main-content">
-    <el-form :inline="true" :model="searchParams" class="search-form">
+  <div class="main-content p-4">
+    <el-form
+      :inline="true"
+      :model="searchParams"
+      class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px]"
+    >
       <el-form-item label="书籍标题">
         <el-input
           v-model="searchParams.title"
@@ -182,12 +213,12 @@ const uploadFile = async event => {
       <el-form-item label="书籍状态">
         <el-select
           v-model="searchParams.bookStatus"
-          placeholder="状态"
+          placeholder="全部状态"
           clearable
-          style="width: 120px"
+          style="width: 140px"
         >
           <el-option
-            v-for="item in dictData.bookStatus"
+            v-for="item in dictData.bookStatus || []"
             :key="item.key"
             :label="item.value"
             :value="item.key"
@@ -198,7 +229,7 @@ const uploadFile = async event => {
       <el-form-item label="作品分类">
         <el-select
           v-model="searchParams.categoryId"
-          placeholder="分类"
+          placeholder="搜索分类"
           clearable
           filterable
           remote
@@ -221,8 +252,11 @@ const uploadFile = async event => {
 
       <el-form-item style="margin-left: auto">
         <el-button type="primary" @click="openAddDialog">新增书籍</el-button>
-        <el-button type="success" @click="handleExport">导出</el-button>
-        <el-button type="info" @click="importRef.click()">导入</el-button>
+        <el-button type="success" @click="handleExport">导出Excel</el-button>
+        <el-button type="warning" plain @click="downloadTemplate">
+          下载模板
+        </el-button>
+        <el-button type="info" @click="importRef.click()">导入书籍</el-button>
         <input
           ref="importRef"
           type="file"
@@ -277,9 +311,19 @@ const uploadFile = async event => {
           >编辑</el-button
         >
 
+        <el-button
+          type="warning"
+          size="small"
+          :icon="Reading"
+          class="ml-2"
+          @click="goToChapters(row)"
+        >
+          章节
+        </el-button>
+
         <el-dropdown
           trigger="click"
-          style="margin-left: 8px"
+          class="ml-2"
           @command="cmd => handleUpdateStatus(row, { bookStatus: cmd })"
         >
           <el-button
@@ -287,9 +331,11 @@ const uploadFile = async event => {
             :type="
               String(row.bookStatus) === '2'
                 ? 'success'
-                : String(row.bookStatus) === '3'
-                  ? 'danger'
-                  : 'warning'
+                : String(row.bookStatus) === '1'
+                  ? 'primary'
+                  : String(row.bookStatus) === '3'
+                    ? 'danger'
+                    : 'info'
             "
           >
             {{ getDictLabel("bookStatus", row.bookStatus) }}
@@ -298,7 +344,7 @@ const uploadFile = async event => {
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
-                v-for="item in dictData.bookStatus"
+                v-for="item in dictData.bookStatus || []"
                 :key="item.key"
                 :command="item.key"
                 :disabled="String(item.key) === String(row.bookStatus)"
@@ -312,7 +358,7 @@ const uploadFile = async event => {
         <el-button
           type="danger"
           size="small"
-          style="margin-left: 8px"
+          class="ml-2"
           @click="handleDeleteBook(row.bookId)"
         >
           删除
@@ -334,7 +380,7 @@ const uploadFile = async event => {
           label-width="120px"
         >
           <el-form-item label="书籍标题" prop="title">
-            <el-input v-model="formData.title" />
+            <el-input v-model="formData.title" placeholder="输入书籍名称" />
           </el-form-item>
 
           <el-form-item label="封面图片" prop="coverImageUrl">
@@ -349,6 +395,7 @@ const uploadFile = async event => {
               v-model="formData.categoryIdList"
               multiple
               filterable
+              placeholder="选择一个或多个分类"
               style="width: 100%"
             >
               <el-option
@@ -364,7 +411,8 @@ const uploadFile = async event => {
             <el-input
               v-model="formData.description"
               type="textarea"
-              :rows="3"
+              :rows="4"
+              placeholder="书籍简介..."
             />
           </el-form-item>
         </el-form>
@@ -378,7 +426,7 @@ const uploadFile = async event => {
           :disabled="isUploading"
           @click="submitForm"
         >
-          {{ isUploading ? "图片上传中..." : "确定保存" }}
+          {{ isUploading ? "图片上传中..." : "保存数据" }}
         </el-button>
       </template>
     </el-dialog>
@@ -386,7 +434,11 @@ const uploadFile = async event => {
 </template>
 
 <style scoped>
-.search-form {
-  margin-bottom: 16px;
+.ml-2 {
+  margin-left: 8px;
+}
+
+.search-form :deep(.el-form-item) {
+  margin-bottom: 12px;
 }
 </style>

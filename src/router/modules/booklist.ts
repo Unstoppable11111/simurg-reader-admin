@@ -17,6 +17,16 @@ export default {
       meta: {
         title: $t("menus.pureBooklist")
       }
+    },
+    {
+      path: "/booklist/chapter",
+      name: "chapter",
+      component: () => import("@/views/chapter/index.vue"),
+      meta: {
+        title: $t("menus.pureChapter"),
+        showLink: false, // 侧边栏隐藏
+        activeMenu: "/booklist/index" // 跳转后“书籍列表”依然高亮
+      }
     }
   ]
 } satisfies RouteConfigsTable;

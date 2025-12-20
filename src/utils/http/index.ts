@@ -12,6 +12,7 @@ import type {
 import { stringify } from "qs";
 import { getToken, formatToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
+import { ElMessage } from "element-plus";
 
 // 相关配置请参考：www.axios-js.com/zh-cn/docs/#axios-request-config-1
 const defaultConfig: AxiosRequestConfig = {
@@ -119,6 +120,19 @@ class PureHttp {
     instance.interceptors.response.use(
       (response: PureHttpResponse) => {
         const $config = response.config;
+        const data = response.data;
+        if (
+          data &&
+          typeof data === "object" &&
+          Object.prototype.hasOwnProperty.call(data, "code")
+        ) {
+          if (data.code !== 200) {
+            const isAsyncRoute = $config.url?.includes("/get-async-routes");
+            if (!($config as any).skipGlobalToast && !isAsyncRoute) {
+              ElMessage.error(data.message || "系统异常");
+            }
+          }
+        }
         // 优先判断post/get等方法是否传入回调，否则执行初始化设置等回调
         if (typeof $config.beforeResponseCallback === "function") {
           $config.beforeResponseCallback(response);

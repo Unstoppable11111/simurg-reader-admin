@@ -227,5 +227,15 @@ export const adminExportBook = (
 export const adminImportBook = (
   data: FormData
 ): Promise<AdminApiResponse<string>> => {
-  return http.request("post", "/admin/book/book/import", { data });
+  return http.request("post", "/admin/book/book/import", {
+    data, // 这里的 data 会直接对应请求体
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
+  });
+};
+
+/** 9. 下载导出模板 */
+export const adminBookdown_template = () => {
+  return http.request("get", "admin/book/down_template");
 };

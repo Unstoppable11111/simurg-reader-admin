@@ -162,6 +162,7 @@ menus:
   pureBannerList: Banner Manage
   pureBooklist: Book InfoList Manage
   pureSysConfigList: System Configs Manage
+  pureChapter: chapter Manage
   pureBookCategoryList: Book Category Manage
   pureResult: Result Page
   pureSuccess: Success Page

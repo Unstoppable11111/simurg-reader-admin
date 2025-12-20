@@ -6,13 +6,16 @@ import {
 import { getCategoryList } from "@/api/bookcategory";
 import { ref, onMounted, reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-import { useDictStoreHook } from "@/store/modules/dict";
-
+// 🟢 引入你刚才展示的这个文件
+import { usePublicDict } from "@/utils/dict";
 export function useColumns() {
-  const dictStore = useDictStoreHook();
+  // 🟢 这里的解构必须完全对应你 usePublicDict 暴露的名称
+  const { dictData, getDictLabel, refreshDict } = usePublicDict();
+
   const loading = ref(true);
   const dataList = ref([]);
 
+  // --- 分页与查询参数 ---
   const paramsData = reactive({
     page: 1,
     size: 20,
@@ -36,13 +39,7 @@ export function useColumns() {
   const categoryOptions = ref([]);
   const categoryLoading = ref(false);
 
-  // 字典辅助工具
-  const getLabel = (dictName: string, keyValue: any) => {
-    const list = dictStore.dictData[dictName] || [];
-    const item = list.find(i => String(i.key) === String(keyValue));
-    return item ? item.value : "未知";
-  };
-
+  // --- 业务请求逻辑 ---
   const fetchData = async () => {
     loading.value = true;
     try {
@@ -66,16 +63,15 @@ export function useColumns() {
         dataList.value = [];
         pagination.total = 0;
       }
-    } catch (_error) {
-      // 修复：error -> _error
-      ElMessage.error("请求失败", _error);
+    } catch (error) {
+      ElMessage.error("请求数据失败", error);
     } finally {
       loading.value = false;
     }
   };
 
-  const fetchCategoryOptions = async (_isSearch = false, query = "") => {
-    // 修复：isSearch -> _isSearch
+  /** 获取分类列表（业务数据） */
+  const fetchCategoryOptions = async (query = "") => {
     categoryLoading.value = true;
     try {
       const res = await getCategoryList({
@@ -93,21 +89,20 @@ export function useColumns() {
     }
   };
 
-  // 修改状态（连载/审核）
+  /** 修改书籍状态（连载/审核） */
   const handleUpdateStatus = async (row: any, updateParams: any) => {
     const isBookStatus = updateParams.bookStatus !== undefined;
     const typeLabel = isBookStatus ? "审核" : "连载";
+
+    // 🟢 使用 getDictLabel
     const dictName = isBookStatus ? "bookStatus" : "bookSerialStatus";
     const newValue = isBookStatus
       ? updateParams.bookStatus
       : updateParams.serialStatus;
+    const targetLabel = getDictLabel(dictName, newValue);
 
-    const targetLabel = getLabel(dictName, newValue);
-    const rollbackValue = isBookStatus
-      ? row.bookStatus
-      : newValue === 0
-        ? 1
-        : 0;
+    const oldBookStatus = row.bookStatus;
+    const oldSerialStatus = row.serialStatus;
 
     try {
       await ElMessageBox.confirm(
@@ -125,24 +120,24 @@ export function useColumns() {
         ElMessage.success(`${typeLabel}状态更新成功`);
         if (isBookStatus) row.bookStatus = updateParams.bookStatus;
       } else {
-        throw new Error(res.msg);
+        throw new Error(res.msg || "更新失败");
       }
     } catch (error: any) {
-      // 回滚数据
       if (isBookStatus) {
-        row.bookStatus = rollbackValue;
+        row.bookStatus = oldBookStatus;
       } else {
-        row.serialStatus = rollbackValue;
+        row.serialStatus = oldSerialStatus;
       }
-
       if (error !== "cancel") ElMessage.error(error.message || "更新失败");
     }
   };
 
+  // --- 表格列配置 ---
   const columns: TableColumnList = [
-    { label: "书籍ID", prop: "bookId", width: 90 },
-    { label: "封面", prop: "coverImageUrl", slot: "coverImageUrl", width: 100 },
+    { label: "书籍ID", prop: "bookId", width: 200 },
+    { label: "封面", prop: "coverImageUrl", slot: "coverImageUrl", width: 200 },
     { label: "标题", prop: "title", align: "left" },
+    { label: "语言", prop: "language", align: "left" },
     {
       label: "连载状态",
       prop: "serialStatus",
@@ -153,20 +148,23 @@ export function useColumns() {
       label: "审核状态",
       prop: "bookStatus",
       width: 120,
-      formatter: ({ bookStatus }) => getLabel("bookStatus", bookStatus)
+      // 🟢 格式化输出
+      formatter: ({ bookStatus }) => getDictLabel("bookStatus", bookStatus)
     },
     {
       label: "操作",
       prop: "operation",
       slot: "operation",
       fixed: "right",
-      width: 220
+      width: 350
     }
   ];
 
   onMounted(() => {
+    // 🟢 对应你 Hook 里的方法名，虽然 Hook 的 onMounted 已经调了，这里手动调一下 refreshDict 也没问题（双保险）
+    refreshDict();
     fetchData();
-    fetchCategoryOptions(false);
+    fetchCategoryOptions();
   });
 
   return {
@@ -175,6 +173,11 @@ export function useColumns() {
     dataList,
     pagination,
     adaptiveConfig: { offsetBottom: 110 },
+
+    // 🟢 暴露给 index.vue
+    dictData,
+    getDictLabel,
+
     onSizeChange: val => {
       pagination.pageSize = val;
       fetchData();
@@ -194,9 +197,8 @@ export function useColumns() {
           ElMessage.success("删除成功");
           fetchData();
         }
-      } catch (_e) {
-        // 修复：e -> _e
-        console.error(_e, "删除失败");
+      } catch (error) {
+        console.error("删除失败:", error);
       }
     },
     handleUpdateStatus,
@@ -209,13 +211,11 @@ export function useColumns() {
       paramsData.title = "";
       paramsData.bookStatus = undefined;
       paramsData.categoryId = undefined;
+      pagination.currentPage = 1;
       fetchData();
     },
-    dictData: dictStore.dictData,
-    getDictLabel: getLabel,
     categoryOptions,
     categoryLoading,
-    remoteMethodCategory: (query: string) =>
-      fetchCategoryOptions(query !== "", query)
+    remoteMethodCategory: (query: string) => fetchCategoryOptions(query)
   };
 }

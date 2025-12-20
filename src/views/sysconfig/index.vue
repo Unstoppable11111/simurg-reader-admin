@@ -32,11 +32,11 @@
         </el-form-item>
       </div>
 
-      <!-- <el-form-item class="mb-0">
+      <el-form-item class="mb-0">
         <el-button type="primary" @click="openAddDialog"
           >新增 SysConfig</el-button
         >
-      </el-form-item> -->
+      </el-form-item>
     </el-form>
 
     <pure-table
@@ -45,7 +45,6 @@
       :adaptiveConfig="adaptiveConfig"
       row-key="configKey"
       alignWhole="center"
-      @selection-change="handleSelectionChange"
       :loading="loading"
       :loading-config="loadingConfig"
       :data="
@@ -56,6 +55,7 @@
       "
       :columns="columns"
       :pagination="pagination"
+      @selection-change="handleSelectionChange"
       @page-size-change="onSizeChange"
       @page-current-change="onCurrentChange"
     >
@@ -98,8 +98,8 @@
     </pure-table>
 
     <el-dialog
-      :title="isEdit ? '编辑系统配置' : '新增系统配置'"
       v-model="dialogVisible"
+      :title="isEdit ? '编辑系统配置' : '新增系统配置'"
       width="500px"
       @close="resetForm"
     >
@@ -113,7 +113,6 @@
           <el-input
             v-model="formData.configKey"
             placeholder="请输入配置键(configKey)"
-            :disabled="isEdit"
           />
         </el-form-item>
 
@@ -327,7 +326,7 @@ const submitForm = async () => {
       const res = await editSysConfigList(formData);
       if (res.code == 200) ElMessage.success("修改成功");
     } else {
-      const res = await addSysConfigList(formData);
+      const res = await editSysConfigList(formData);
       if (res.code == 200) ElMessage.success("新增成功");
     }
 
@@ -342,22 +341,28 @@ const submitForm = async () => {
 .main-content {
   width: auto !important;
 }
+
 .mb-4 {
   margin-bottom: 16px;
 }
+
 /* 确保 flex 布局中的子项不会换行 */
 .flex {
   display: flex;
 }
+
 .justify-between {
   justify-content: space-between;
 }
+
 .items-center {
   align-items: center;
 }
+
 .ml-4 {
   margin-left: 1rem;
 }
+
 .mb-0 {
   margin-bottom: 0 !important;
 }

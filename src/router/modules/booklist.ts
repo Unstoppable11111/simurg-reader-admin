@@ -5,7 +5,7 @@ export default {
   path: "/booklist",
   redirect: "/booklist/index",
   meta: {
-    icon: "ri/file-info-line",
+    icon: "ri/book-info",
     title: $t("menus.pureBooklist"),
     rank: booklist
   },
@@ -24,8 +24,16 @@ export default {
       component: () => import("@/views/chapter/index.vue"),
       meta: {
         title: $t("menus.pureChapter"),
-        showLink: false, // 侧边栏隐藏
-        activeMenu: "/booklist/index" // 跳转后“书籍列表”依然高亮
+        showLink: false // 侧边栏隐藏
+      }
+    },
+    {
+      path: "/booklist/bookcomment",
+      name: "bookcomment",
+      component: () => import("@/views/bookcomment/index.vue"),
+      meta: {
+        title: $t("menus.purebookcomment"),
+        showLink: false // 侧边栏隐藏
       }
     }
   ]

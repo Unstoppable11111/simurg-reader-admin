@@ -2,7 +2,7 @@
 import { getSvgInfo } from "@pureadmin/utils";
 import { addIcon } from "@iconify/vue/dist/offline";
 
-// https://icon-sets.iconify.design/ep/?keyword=ep
+// --- Element Plus Icons ---
 import EpMenu from "~icons/ep/menu?raw";
 import EpEdit from "~icons/ep/edit?raw";
 import EpGuide from "~icons/ep/guide?raw";
@@ -12,7 +12,7 @@ import EpLollipop from "~icons/ep/lollipop?raw";
 import EpHistogram from "~icons/ep/histogram?raw";
 import EpHomeFilled from "~icons/ep/home-filled?raw";
 
-// https://icon-sets.iconify.design/ri/?keyword=ri
+// --- Remix Icons (根据你的接口模块匹配) ---
 import RiMindMap from "~icons/ri/mind-map?raw";
 import RiAdminFill from "~icons/ri/admin-fill?raw";
 import RiTableLine from "~icons/ri/table-line?raw";
@@ -41,8 +41,20 @@ import RiTerminalWindowLine from "~icons/ri/terminal-window-line?raw";
 import RiCheckboxCircleLine from "~icons/ri/checkbox-circle-line?raw";
 import RiBarChartHorizontalLine from "~icons/ri/bar-chart-horizontal-line?raw";
 
+// 🟢 新增：对应你截图接口的图标
+import RiBook2Line from "~icons/ri/book-2-line?raw"; // 书籍基本信息
+import RiNodeTree from "~icons/ri/node-tree?raw"; // 书籍分类/章节
+import RiChat4Line from "~icons/ri/chat-4-line?raw"; // 书籍评论
+import RiStarSFill from "~icons/ri/star-s-fill?raw"; // 书籍评分
+import RiBookMarkLine from "~icons/ri/book-mark-line?raw"; // 用户收藏
+import RiBookReadLine from "~icons/ri/book-read-line?raw"; // 阅读记录
+import RiSpam2Line from "~icons/ri/spam-2-line?raw"; // 敏感词
+import RiFileSettingsLine from "~icons/ri/file-settings-line?raw"; // 系统配置
+import RiContractLine from "~icons/ri/contract-line?raw"; // 合同管理
+import RiImageLine from "~icons/ri/image-line?raw"; // Banner/上传
+
 const icons = [
-  // Element Plus Icon: https://github.com/element-plus/element-plus-icons
+  // Element Plus Icons
   ["ep/menu", EpMenu],
   ["ep/edit", EpEdit],
   ["ep/guide", EpGuide],
@@ -51,7 +63,8 @@ const icons = [
   ["ep/lollipop", EpLollipop],
   ["ep/histogram", EpHistogram],
   ["ep/home-filled", EpHomeFilled],
-  // Remix Icon: https://github.com/Remix-Design/RemixIcon
+
+  // Remix Icons
   ["ri/mind-map", RiMindMap],
   ["ri/admin-fill", RiAdminFill],
   ["ri/table-line", RiTableLine],
@@ -78,10 +91,22 @@ const icons = [
   ["ri/information-line", RiInformationLine],
   ["ri/terminal-window-line", RiTerminalWindowLine],
   ["ri/checkbox-circle-line", RiCheckboxCircleLine],
-  ["ri/bar-chart-horizontal-line", RiBarChartHorizontalLine]
+  ["ri/bar-chart-horizontal-line", RiBarChartHorizontalLine],
+
+  // 🟢 注册新图标映射
+  ["ri/book-info", RiBook2Line],
+  ["ri/book-category", RiNodeTree],
+  ["ri/book-comment", RiChat4Line],
+  ["ri/book-rating", RiStarSFill],
+  ["ri/book-collect", RiBookMarkLine],
+  ["ri/book-read", RiBookReadLine],
+  ["ri/sensitive", RiSpam2Line],
+  ["ri/config", RiFileSettingsLine],
+  ["ri/contract", RiContractLine],
+  ["ri/banner", RiImageLine]
 ];
 
-// 本地菜单图标，后端在路由的 icon 中返回对应的图标字符串并且前端在此处使用 addIcon 添加即可渲染菜单图标
+// 核心注册逻辑
 icons.forEach(([name, icon]) => {
   addIcon(name as string, getSvgInfo(icon as string));
 });

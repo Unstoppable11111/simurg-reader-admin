@@ -6,7 +6,7 @@ import type {
 } from "@pureadmin/table";
 import { getCategoryList } from "@/api/bookcategory";
 import { ref, onMounted, reactive } from "vue";
-import { ElMessage } from "element-plus";
+// import { ElMessage } from "element-plus";
 
 // 1. 修改查询参数：去除 bannerTitle 等无关字段，改为 categoryName
 const paramsData = reactive({
@@ -44,8 +44,16 @@ export function useColumns() {
       width: 120
     },
     { label: "分类描述", prop: "categoryDescription" },
-    { label: "创建时间", prop: "createTime", formatter: (row) => formatDate(row.createTime) },
-    { label: "更新时间", prop: "updateTime", formatter: (row) => formatDate(row.updateTime) },
+    {
+      label: "创建时间",
+      prop: "createTime",
+      formatter: row => formatDate(row.createTime)
+    },
+    {
+      label: "更新时间",
+      prop: "updateTime",
+      formatter: row => formatDate(row.updateTime)
+    },
     {
       label: "操作",
       prop: "operation",
@@ -99,11 +107,11 @@ export function useColumns() {
         dataList.value = [];
         pagination.total = 0;
         // 只有出错或明确无数据时才提示，避免每次刷新都弹窗
-        if (res.code !== 200) ElMessage.warning(res.msg || "暂无数据");
+        // if (res.code !== 200) ElMessage.warning(res.msg || "暂无数据");
       }
     } catch (error) {
       console.error("获取列表失败:", error);
-      ElMessage.error("请求失败");
+      // ElMessage.error("请求失败");
       dataList.value = [];
       pagination.total = 0;
     } finally {

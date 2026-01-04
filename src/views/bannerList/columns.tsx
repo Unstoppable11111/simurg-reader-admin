@@ -144,8 +144,8 @@ export function useColumns() {
         pagination.total = 0;
         ElMessage.warning(res.msg || "暂无数据");
       }
-    } catch (error) {
-      console.error("获取 Banner 列表失败:", error);
+    } catch (_e) {
+      console.error("获取 Banner 列表失败:", _e);
       ElMessage.error("请求失败");
       dataList.value = [];
       pagination.total = 0;

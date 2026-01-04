@@ -20,14 +20,15 @@ export interface ChapterDetail extends ChapterListItem {
 
 /** 章节列表请求参数 */
 export interface ChapterListParams {
-  bookId: number;
+  bookId: string | number;
   page?: number;
   size?: number;
 }
 
 /** 创建/更新章节参数 */
 export interface ChapterParams {
-  bookId: number;
+  bookId: string | number;
+  page?: number;
   chapterName: string;
   content: string;
   chapterNumber?: number;

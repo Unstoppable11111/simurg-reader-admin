@@ -164,6 +164,8 @@ menus:
   pureSysConfigList: 系统配置管理控制器
   pureChapter: 书籍章节管理
   pureBookCategoryList: 书籍分类管理
+  purebookcomment: 书籍评论管理
+  pureRating: 书籍评分管理
   pureResult: 结果页面
   pureSuccess: 成功页面
   pureFail: 失败页面

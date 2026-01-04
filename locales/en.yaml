@@ -164,6 +164,8 @@ menus:
   pureSysConfigList: System Configs Manage
   pureChapter: chapter Manage
   pureBookCategoryList: Book Category Manage
+  purebookcomment: Book Comment Manage
+  pureRating: Book Rating Manage
   pureResult: Result Page
   pureSuccess: Success Page
   pureFail: Fail Page

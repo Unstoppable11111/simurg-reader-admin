@@ -94,13 +94,13 @@ export function useColumns() {
     const isBookStatus = updateParams.bookStatus !== undefined;
     const typeLabel = isBookStatus ? "审核" : "连载";
 
-    // 🟢 使用 getDictLabel
     const dictName = isBookStatus ? "bookStatus" : "bookSerialStatus";
     const newValue = isBookStatus
       ? updateParams.bookStatus
       : updateParams.serialStatus;
     const targetLabel = getDictLabel(dictName, newValue);
 
+    // 记录旧值用于出错时回滚（如果用了 v-model 的话需要，如果是 :model-value 则非必须，但留着更稳健）
     const oldBookStatus = row.bookStatus;
     const oldSerialStatus = row.serialStatus;
 
@@ -118,17 +118,25 @@ export function useColumns() {
 
       if (res.code === 200) {
         ElMessage.success(`${typeLabel}状态更新成功`);
-        if (isBookStatus) row.bookStatus = updateParams.bookStatus;
+
+        // ✅ 修正点：直接将 updateParams 中的所有键值对同步到 row 对象
+        // 这样无论是 bookStatus 还是 serialStatus 都会立即在界面响应
+        Object.assign(row, updateParams);
       } else {
         throw new Error(res.msg || "更新失败");
       }
     } catch (error: any) {
-      if (isBookStatus) {
+      // 如果用户取消或接口失败，且你使用的是 v-model，则需要手动回滚状态
+      if (error === "cancel") {
+        // 如果是单向绑定 :model-value，其实这里什么都不用做，开关自己就不会变
+        // 如果是 v-model，则需要下面这两行：
         row.bookStatus = oldBookStatus;
-      } else {
         row.serialStatus = oldSerialStatus;
+      } else {
+        row.bookStatus = oldBookStatus;
+        row.serialStatus = oldSerialStatus;
+        // ElMessage.error(error.message || "更新失败");
       }
-      if (error !== "cancel") ElMessage.error(error.message || "更新失败");
     }
   };
 
@@ -138,6 +146,41 @@ export function useColumns() {
     { label: "封面", prop: "coverImageUrl", slot: "coverImageUrl", width: 200 },
     { label: "标题", prop: "title", align: "left" },
     { label: "语言", prop: "language", align: "left" },
+    {
+      label: "书籍总字数（已发布）",
+      prop: "totalWordCountPublished",
+      align: "left"
+    },
+    {
+      label: "书籍评分",
+      prop: "rating",
+      align: "left"
+    },
+    {
+      label: "书籍浏览量",
+      prop: "bookViews",
+      align: "left"
+    },
+    {
+      label: "累计收藏数",
+      prop: "totalFavorites",
+      align: "left"
+    },
+    {
+      label: "累计分享数",
+      prop: "totalShares",
+      align: "left"
+    },
+    {
+      label: "累计点赞数",
+      prop: "totalLikes",
+      align: "left"
+    },
+    {
+      label: "累计评论数",
+      prop: "totalComments",
+      align: "left"
+    },
     {
       label: "连载状态",
       prop: "serialStatus",
@@ -156,7 +199,7 @@ export function useColumns() {
       prop: "operation",
       slot: "operation",
       fixed: "right",
-      width: 350
+      width: 430
     }
   ];
 

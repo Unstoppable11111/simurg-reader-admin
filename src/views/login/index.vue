@@ -288,7 +288,7 @@ watch(loginDay, value => {
               </el-form-item>
             </Motion>
 
-            <Motion :delay="300">
+            <!-- <Motion :delay="300">
               <el-form-item>
                 <div class="w-full h-[20px] flex justify-between items-center">
                   <el-button
@@ -302,10 +302,10 @@ watch(loginDay, value => {
                   </el-button>
                 </div>
               </el-form-item>
-            </Motion>
+            </Motion> -->
           </el-form>
 
-          <Motion v-if="currentPage === 0" :delay="350">
+          <!-- <Motion v-if="currentPage === 0" :delay="350">
             <el-form-item>
               <el-divider>
                 <p class="text-gray-500 text-xs">
@@ -326,25 +326,25 @@ watch(loginDay, value => {
                 </span>
               </div>
             </el-form-item>
-          </Motion>
+          </Motion> -->
           <!-- 手机号登录 -->
-          <LoginPhone v-if="currentPage === 1" />
+          <!-- <LoginPhone v-if="currentPage === 1" /> -->
           <!-- 二维码登录 -->
-          <LoginQrCode v-if="currentPage === 2" />
+          <!-- <LoginQrCode v-if="currentPage === 2" /> -->
           <!-- 注册 -->
-          <LoginRegist v-if="currentPage === 3" />
+          <!-- <LoginRegist v-if="currentPage === 3" /> -->
           <!-- 忘记密码 -->
-          <LoginUpdate v-if="currentPage === 4" />
+          <!-- <LoginUpdate v-if="currentPage === 4" /> -->
         </div>
       </div>
     </div>
     <div
       class="w-full flex-c absolute bottom-3 text-sm text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]"
     >
-      Copyright © 2020-present
+      Copyright © {{ new Date().getFullYear() }}
       <a
         class="hover:text-primary!"
-        href="https://github.com/pure-admin"
+        href="http://www.simurg-reader-test.tata.org.cn/"
         target="_blank"
       >
         &nbsp;{{ title }}

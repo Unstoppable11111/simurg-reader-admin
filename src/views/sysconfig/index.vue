@@ -237,11 +237,11 @@ const handleBatchDelete = async () => {
       ElMessage.success(`成功删除了 ${selectedKeys.length} 个配置项`);
       refresh();
     } else {
-      ElMessage.error(res.msg || "批量删除失败");
+      // ElMessage.error(res.msg || "批量删除失败");
     }
   } catch (error) {
     if (error !== "cancel") {
-      ElMessage.error("批量删除请求失败");
+      // ElMessage.error("批量删除请求失败");
     }
   }
 };
@@ -280,10 +280,10 @@ const handleBatchGet = async () => {
         }
       );
     } else {
-      ElMessage.error(res.msg || "批量获取失败或数据格式不匹配");
+      // ElMessage.error(res.msg || "批量获取失败或数据格式不匹配");
     }
   } catch (error) {
-    ElMessage.error("批量获取配置请求失败");
+    // ElMessage.error("批量获取配置请求失败");
   }
 };
 
@@ -333,7 +333,7 @@ const submitForm = async () => {
     dialogVisible.value = false;
     refresh(); // 刷新列表
   } catch (error) {
-    ElMessage.error("提交失败");
+    // ElMessage.error("提交失败");
   }
 };
 </script>

@@ -5,7 +5,7 @@ export default {
   path: "/bannerList",
   redirect: "/bannerList/index",
   meta: {
-    icon: "ri/file-info-line",
+    icon: "ri/banner",
     title: $t("menus.pureBannerList"),
     rank: bannerList
   },

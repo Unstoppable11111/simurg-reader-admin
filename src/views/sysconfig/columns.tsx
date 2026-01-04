@@ -7,7 +7,7 @@ import type {
 
 import { getSysConfigList } from "@/api/sysconfig";
 import { ref, onMounted, reactive } from "vue";
-import { ElMessage } from "element-plus";
+// import { ElMessage } from "element-plus";
 
 // 初始查询参数（与分页联动）
 const paramsData = reactive({
@@ -27,16 +27,6 @@ function formatDate(dateStr: any): string {
 }
 
 // 枚举映射（用于 formatter）
-// ⚠️ 注意：如果表格中已移除 linkType/status 列，这些映射可以移除
-const linkTypeMap: Record<number, string> = {
-  0: "内部页面",
-  1: "外部链接"
-};
-
-const statusMap: Record<number, string> = {
-  0: "禁用",
-  1: "启用"
-};
 
 export function useColumns() {
   const dataList = ref<any[]>([]);
@@ -116,11 +106,11 @@ export function useColumns() {
       } else {
         dataList.value = [];
         pagination.total = 0;
-        ElMessage.warning(res.msg || "暂无数据");
+        // ElMessage.warning(res.msg || "暂无数据");
       }
     } catch (error) {
       console.error("获取 SysConfig 列表失败:", error);
-      ElMessage.error("请求失败");
+      // ElMessage.error("请求失败");
       dataList.value = [];
       pagination.total = 0;
     } finally {

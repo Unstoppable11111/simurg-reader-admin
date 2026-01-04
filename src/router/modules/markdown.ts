@@ -7,6 +7,7 @@ export default {
   meta: {
     icon: "ri/markdown-line",
     title: $t("menus.pureMarkdown"),
+    hidden: true, // ← 关键！菜单中不显示
     rank: markdown
   },
   children: [

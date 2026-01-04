@@ -6,6 +6,7 @@ export default {
   meta: {
     icon: "ri/chat-search-line",
     title: "chat-ai",
+    hidden: true, // ← 关键！菜单中不显示
     rank: chatai
   },
   children: [

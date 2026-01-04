@@ -1,5 +1,5 @@
 <template>
-  <el-config-provider :locale="currentLocale">
+  <el-config-provider :locale="currentLocale" :message="{ max: 1 }">
     <router-view />
     <ReDialog />
     <ReDrawer />

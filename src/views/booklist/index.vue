@@ -3,7 +3,7 @@ import { ref, reactive, computed, onMounted } from "vue"; // 🟢 增加 onMount
 import { useRouter } from "vue-router";
 import { useColumns } from "./columns";
 import { ElMessage } from "element-plus";
-import { ArrowDown, Reading } from "@element-plus/icons-vue";
+import { ArrowDown, Reading, Comment, Star } from "@element-plus/icons-vue";
 import dayjs from "dayjs";
 import {
   adminCreateBook,
@@ -49,6 +49,28 @@ const importRef = ref(null);
 const goToChapters = row => {
   router.push({
     name: "chapter",
+    query: {
+      bookId: String(row.bookId),
+      bookTitle: row.title
+    }
+  });
+};
+
+// 跳转评论管理
+const goToComments = row => {
+  router.push({
+    name: "bookcomment",
+    query: {
+      bookId: String(row.bookId),
+      bookTitle: row.title
+    }
+  });
+};
+
+// 跳转评分管理
+const goToRating = row => {
+  router.push({
+    name: "rating",
     query: {
       bookId: String(row.bookId),
       bookTitle: row.title
@@ -134,7 +156,7 @@ const openEditDialog = async row => {
       });
     }
   } catch (error) {
-    ElMessage.error("获取详情失败");
+    // ElMessage.error("获取详情失败");
   } finally {
     loadingDetail.value = false;
   }
@@ -293,7 +315,7 @@ const uploadFile = async event => {
 
       <template #serialStatusSwitch="{ row }">
         <el-switch
-          v-model="row.serialStatus"
+          :model-value="row.serialStatus"
           :active-value="0"
           :inactive-value="1"
           :active-text="getDictLabel('bookSerialStatus', 0)"
@@ -319,6 +341,25 @@ const uploadFile = async event => {
           @click="goToChapters(row)"
         >
           章节
+        </el-button>
+        <el-button
+          color="#626aef"
+          size="small"
+          :icon="Comment"
+          class="ml-2"
+          @click="goToComments(row)"
+        >
+          评论
+        </el-button>
+
+        <el-button
+          color="#13ce66"
+          size="small"
+          :icon="Star"
+          class="ml-2"
+          @click="goToRating(row)"
+        >
+          评分
         </el-button>
 
         <el-dropdown

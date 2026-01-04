@@ -20,7 +20,6 @@ import {
   getTopMenu,
   initRouter,
   isOneOfArray,
-  getHistoryMode,
   findRouteByPath,
   handleAliveRoute,
   formatTwoStageRoutes,
@@ -30,7 +29,8 @@ import {
   type Router,
   type RouteRecordRaw,
   type RouteComponent,
-  createRouter
+  createRouter,
+  createWebHistory
 } from "vue-router";
 import {
   type DataInfo,
@@ -84,7 +84,7 @@ export const remainingPaths = Object.keys(remainingRouter).map(v => {
 
 /** 创建路由实例 */
 export const router: Router = createRouter({
-  history: getHistoryMode(import.meta.env.VITE_ROUTER_HISTORY),
+  history: createWebHistory(import.meta.env.VITE_ROUTER_HISTORY),
   routes: constantRoutes.concat(...(remainingRouter as any)),
   strict: true,
   scrollBehavior(to, from, savedPosition) {

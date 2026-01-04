@@ -5,9 +5,9 @@ export default {
   path: "/bookcategory",
   redirect: "/bookcategory/index",
   meta: {
-    icon: "ri/file-info-line",
+    icon: "ri/book-category",
     title: $t("menus.pureBookCategoryList"),
-    rank: bookcategory,
+    rank: bookcategory
   },
   children: [
     {

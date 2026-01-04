@@ -213,6 +213,7 @@ docker run -dp 8080:80  --name pure-admin vue-pure-admin
 
 <!--
   部分菜单被我隐藏，看模板完整版菜单的访问：https://pure-admin.github.io/vue-pure-admin/#/components/drawer
+  node版本：24.9.0
   备注：
     1.目前登录是结合两个login和info接口。然后合并，某些信息可能没存到store，到时候用到在存
     2.双token功能的刷新功能还没做，目前只是登录后请求头携带两个token

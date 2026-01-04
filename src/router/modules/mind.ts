@@ -8,6 +8,7 @@ export default {
   meta: {
     icon: "ri/mind-map",
     title: $t("menus.pureMindMap"),
+    hidden: true, // ← 关键！菜单中不显示
     rank: mind
   },
   children: [

@@ -32,8 +32,10 @@ const home = 0, // 平台规定只有 home 路由的 rank 才能为 0 ，所以�
   sysconfig = 29,
   bookcategory = 30,
   booklist = 31,
-  chapter = 32;
-
+  chapter = 32,
+  bookcomment = 33,
+  rating = 34,
+  sensitive = 35;
 export {
   home,
   chatai,
@@ -67,5 +69,8 @@ export {
   sysconfig,
   bookcategory,
   booklist,
-  chapter
+  chapter,
+  bookcomment,
+  rating,
+  sensitive
 };

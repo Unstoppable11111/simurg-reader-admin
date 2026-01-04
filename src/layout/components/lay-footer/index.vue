@@ -8,10 +8,11 @@ const TITLE = getConfig("Title");
   <footer
     class="layout-footer text-[rgba(0,0,0,0.6)] dark:text-[rgba(220,220,242,0.8)]"
   >
-    Copyright © 2020-present
+    <!-- 动态获取最新年份 -->
+    Copyright © {{ new Date().getFullYear() }}
     <a
       class="hover:text-primary!"
-      href="https://github.com/pure-admin"
+      href="http://www.simurg-reader-test.tata.org.cn/"
       target="_blank"
     >
       &nbsp;{{ TITLE }}

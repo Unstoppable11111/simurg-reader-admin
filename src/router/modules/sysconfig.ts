@@ -5,9 +5,9 @@ export default {
   path: "/sysconfig",
   redirect: "/sysconfig/index",
   meta: {
-    icon: "ri/file-info-line",
+    icon: "ri/settings-3-line",
     title: $t("menus.pureSysConfigList"),
-    rank: sysconfig,
+    rank: sysconfig
   },
   children: [
     {

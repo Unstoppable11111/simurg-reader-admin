@@ -8,6 +8,7 @@ export default {
     icon: "ep/menu",
     title: $t("menus.pureComponents"),
     rank: components,
+    hidden: true // ← 关键！菜单中不显示
   },
   children: [
     {

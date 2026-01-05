@@ -52,7 +52,7 @@ const {
 
 <template>
   <div :class="['flex', 'justify-between', deviceDetection() && 'flex-wrap']">
-    <tree
+    <!-- <tree
       ref="treeRef"
       :class="['mr-2', deviceDetection() ? 'w-full' : 'min-w-[200px]']"
       :treeData="treeData"
@@ -61,7 +61,8 @@ const {
     />
     <div
       :class="[deviceDetection() ? ['w-full', 'mt-2'] : 'w-[calc(100%-200px)]']"
-    >
+    > -->
+    <div :class="[deviceDetection() ? ['w-full', 'mt-2'] : 'w-[calc(100%)]']">
       <el-form
         ref="formRef"
         :inline="true"

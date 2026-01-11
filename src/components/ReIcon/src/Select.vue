@@ -61,6 +61,12 @@ const iconItemStyle = computed((): ParameterCSSProperties => {
 });
 
 function setVal() {
+  if (!inputValue.value || inputValue.value.indexOf(":") === -1) {
+    // 如果输入值为空或不包含冒号，设置默认值
+    currentActiveType.value = "ep:";
+    icon.value = "";
+    return;
+  }
   currentActiveType.value = inputValue.value.substring(
     0,
     inputValue.value.indexOf(":") + 1
@@ -69,13 +75,15 @@ function setVal() {
 }
 
 function onBeforeEnter() {
-  if (isAllEmpty(icon.value)) return;
+  if (isAllEmpty(inputValue.value)) return;
   setVal();
   // 寻找当前图标在第几页
-  const curIconIndex = copyIconList[currentActiveType.value].findIndex(
-    i => i === icon.value
-  );
-  currentPage.value = Math.ceil((curIconIndex + 1) / pageSize.value);
+  const currentIcons = copyIconList[currentActiveType.value];
+  if (!currentIcons) return; // 如果当前类型没有图标数据，直接返回
+  const curIconIndex = currentIcons.findIndex(i => i === icon.value);
+  if (curIconIndex !== -1) {
+    currentPage.value = Math.ceil((curIconIndex + 1) / pageSize.value);
+  }
 }
 
 function onAfterLeave() {

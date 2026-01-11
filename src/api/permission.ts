@@ -16,8 +16,29 @@ export interface PermissionItem {
   createDate?: string;
   /** 更新时间 */
   updateDate?: string;
+  /** icon 图标 */
+  icon?: string | null;
   /** 子权限列表 */
   childPermissions?: PermissionItem[];
+
+  // 菜单相关字段
+  menuType?: number;
+  name?: string;
+  component?: string;
+  rank?: number;
+  redirect?: string;
+  extraIcon?: string;
+  enterTransition?: string;
+  leaveTransition?: string;
+  activePath?: string;
+  auths?: string;
+  frameSrc?: string;
+  frameLoading?: boolean;
+  keepAlive?: boolean;
+  hiddenTag?: boolean;
+  fixedTag?: boolean;
+  showLink?: boolean;
+  showParent?: boolean;
 }
 
 /** 权限列表查询参数 */
@@ -29,6 +50,8 @@ export interface PermissionListParams {
   description?: string;
   type?: "A" | "M";
   parentId?: number;
+  /** icon 图标 */
+  icon?: string | null;
   orderBy?: string;
   orderDirection?: "asc" | "desc";
 }
@@ -48,12 +71,12 @@ export const getPermissionTree = () => {
   );
 };
 
-/** 2. 获取权限列表（分页） */
-export const getPermissionList = (data: PermissionListParams) => {
-  return http.request<BaseResult<any>>("post", "/admin/permission/list", {
-    data
-  });
-};
+// /** 2. 获取权限列表（分页） */
+// export const getPermissionList = (data: PermissionListParams) => {
+//   return http.request<BaseResult<any>>("post", "/admin/permission/list", {
+//     data
+//   });
+// };
 
 /** 3. 根据ID获取权限详情 */
 export const getPermissionDetail = (id: number) => {

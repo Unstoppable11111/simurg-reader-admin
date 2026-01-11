@@ -147,7 +147,7 @@ onMounted(() => {
       <PureTableBar
         :class="[isShow && !deviceDetection() ? 'w-[60vw]!' : 'w-full']"
         style="transition: width 220ms cubic-bezier(0.4, 0, 0.2, 1)"
-        title="角色管理（仅演示，操作后不生效）"
+        title="角色管理"
         :columns="columns"
         @refresh="onSearch"
       >
@@ -194,7 +194,7 @@ onMounted(() => {
                 修改
               </el-button>
               <el-popconfirm
-                :title="`是否确认删除角色名称为${row.name}的这条数据`"
+                :title="`是否确认删除角色名称为${row.roleName}的这条数据`"
                 @confirm="handleDelete(row)"
               >
                 <template #reference>
@@ -293,20 +293,20 @@ onMounted(() => {
             </span>
           </div>
           <p class="font-bold truncate">
-            菜单权限
-            {{ `${curRow?.name ? `（${curRow.name}）` : ""}` }}
+            权限配置
+            {{ `${curRow?.roleName ? `（${curRow.roleName}）` : ""}` }}
           </p>
         </div>
         <el-input
           v-model="treeSearchValue"
-          placeholder="请输入菜单进行搜索"
+          placeholder="请输入权限进行搜索"
           class="mb-1"
           clearable
           @input="onQueryChanged"
         />
-        <div class="flex flex-wrap">
-          <el-checkbox v-model="isExpandAll" label="展开/折叠" />
-          <el-checkbox v-model="isSelectAll" label="全选/全不选" />
+        <div class="flex flex-wrap mb-2">
+          <el-checkbox v-model="isExpandAll" label="展开/折叠" class="mr-4" />
+          <el-checkbox v-model="isSelectAll" label="全选/全不选" class="mr-4" />
           <el-checkbox v-model="isLinkage" label="父子联动" />
         </div>
         <el-tree-v2
@@ -319,7 +319,7 @@ onMounted(() => {
           :filter-method="filterMethod"
         >
           <template #default="{ node }">
-            <span>{{ transformI18n(node.label) }}</span>
+            <span class="truncate">{{ transformI18n(node.label) }}</span>
           </template>
         </el-tree-v2>
       </div>
@@ -328,17 +328,14 @@ onMounted(() => {
 </template>
 
 <style lang="scss" scoped>
-:deep(.el-dropdown-menu__item i) {
-  margin: 0;
-}
-
-.main-content {
-  margin: 24px 24px 0 !important;
-}
-
 .search-form {
   :deep(.el-form-item) {
     margin-bottom: 12px;
   }
+}
+
+.main {
+  height: 100%;
+  overflow: auto;
 }
 </style>

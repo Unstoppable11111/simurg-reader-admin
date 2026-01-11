@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import { formRules } from "./utils/rule";
 import { FormProps } from "./utils/types";
 
@@ -17,6 +17,11 @@ const newFormInline = ref(props.formInline);
 function getRef() {
   return ruleFormRef.value;
 }
+
+onMounted(() => {
+  // 初始化表单数据
+  newFormInline.value = { ...props.formInline };
+});
 
 defineExpose({ getRef });
 </script>
@@ -49,6 +54,7 @@ defineExpose({ getRef });
         v-model="newFormInline.remark"
         placeholder="请输入备注信息"
         type="textarea"
+        :rows="4"
       />
     </el-form-item>
   </el-form>

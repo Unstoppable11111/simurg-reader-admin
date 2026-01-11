@@ -30,6 +30,9 @@ export const useUserStore = defineStore("pure-user", {
     // 按钮级别权限
     permissions:
       storageLocal().getItem<DataInfo<number>>(userKey)?.permissions ?? [],
+    // 当前用户的权限树
+    permissionsTree:
+      storageLocal().getItem<DataInfo<number>>(userKey)?.permissionsTree ?? [],
     // 前端生成的验证码（按实际需求替换）
     verifyCode: "",
     // 判断登录页面显示哪个组件（0：登录（默认）、1：手机登录、2：二维码登录、3：注册、4：忘记密码）
@@ -60,6 +63,10 @@ export const useUserStore = defineStore("pure-user", {
     SET_PERMS(permissions: Array<string>) {
       this.permissions = permissions;
     },
+    /** 存储权限树 */
+    SET_PERMISSIONS_TREE(permissionsTree: Array<any>) {
+      this.permissionsTree = permissionsTree;
+    },
     /** 存储前端生成的验证码 */
     SET_VERIFYCODE(verifyCode: string) {
       this.verifyCode = verifyCode;
@@ -80,12 +87,16 @@ export const useUserStore = defineStore("pure-user", {
     async loginByUsername(data) {
       return new Promise<UserResult>((resolve, reject) => {
         getLogin(data)
-          .then(data => {
+          .then(async data => {
             // console.log(data, '登录data----------');
 
-            if (data?.code === 200) setToken(data.data as any);
-            // 2. 登录成功后立即调用字典接口存入内存
-            useDictStoreHook().fetchAllDicts();
+            if (data?.code === 200) {
+              setToken(data.data as any);
+
+              // 2. 登录成功后立即调用字典接口存入内存
+              useDictStoreHook().fetchAllDicts();
+            }
+
             resolve(data);
           })
           .catch(error => {
@@ -98,6 +109,7 @@ export const useUserStore = defineStore("pure-user", {
       this.account = "";
       this.roles = [];
       this.permissions = [];
+      this.permissionsTree = [];
       removeToken();
       useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
       resetRouter();

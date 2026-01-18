@@ -35,7 +35,8 @@ const home = 0, // 平台规定只有 home 路由的 rank 才能为 0 ，所以�
   chapter = 32,
   bookcomment = 33,
   rating = 34,
-  sensitive = 35;
+  sensitive = 35,
+  feedback = 36;
 export {
   home,
   chatai,
@@ -72,5 +73,6 @@ export {
   chapter,
   bookcomment,
   rating,
-  sensitive
+  sensitive,
+  feedback
 };

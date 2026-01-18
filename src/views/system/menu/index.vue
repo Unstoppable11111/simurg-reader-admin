@@ -1,6 +1,15 @@
 <template>
   <div class="pure-table-container">
     <div class="flex justify-between mb-4">
+      <!-- 根据权限树查询菜单 -->
+      <el-input
+        v-model="searchKeyword"
+        placeholder="请输入菜单名称"
+        clearable
+        style="width: 200px; margin-right: 10px"
+        @input="handleSearch"
+      />
+
       <el-button type="primary" :icon="CirclePlus" @click="handleCreate">
         新增菜单
       </el-button>
@@ -46,7 +55,7 @@
 
       <el-table-column label="路由地址" prop="path" />
 
-      <el-table-column label="权限标识" prop="auths" />
+      <!-- <el-table-column label="权限标识" prop="auths" /> -->
 
       <el-table-column label="上级菜单">
         <template #default="{ row }">
@@ -56,7 +65,7 @@
 
       <el-table-column label="ID" prop="id" width="80" />
 
-      <el-table-column label="排序" prop="rank" width="80" />
+      <el-table-column label="排序" prop="sortOrder" width="80" />
 
       <el-table-column label="操作" fixed="right" width="210">
         <template #default="{ row }">
@@ -183,9 +192,9 @@
           </el-col>
 
           <el-col :xs="24" :sm="12" :md="12" :lg="12" :xl="12">
-            <el-form-item label="排序" prop="rank">
+            <el-form-item label="排序" prop="sortOrder">
               <el-input-number
-                v-model="formData.rank"
+                v-model="formData.sortOrder"
                 placeholder="请输入排序"
                 :min="0"
                 :max="999"
@@ -235,6 +244,13 @@ import { IconSelect } from "@/components/ReIcon";
 // 数据
 const loading = ref(true);
 const dataList = ref<any[]>([]);
+const originalDataList = ref<any[]>([]); // 存储原始数据
+const searchKeyword = ref(""); // 搜索关键词
+
+// 查询参数
+const queryParams = ref({
+  parentId: undefined
+});
 
 // 对话框相关
 const dialogVisible = ref(false);
@@ -247,7 +263,7 @@ const formData = ref<any>({
   component: "",
   auths: "",
   icon: "",
-  rank: 99,
+  sortOrder: 99,
   frameSrc: "",
   frameLoading: true,
   keepAlive: false,
@@ -262,7 +278,20 @@ const formRules = {
   path: [{ required: true, message: "请输入路由地址", trigger: "blur" }],
   menuType: [{ required: true, message: "请选择菜单类型", trigger: "change" }],
   icon: [{ required: false, message: "请选择图标", trigger: "change" }],
-  parentId: [{ required: false, message: "请选择上级菜单", trigger: "change" }]
+  parentId: [{ required: false, message: "请选择上级菜单", trigger: "change" }],
+  auths: [
+    // 仅当菜单类型为按钮(3)时才必填权限标识
+    {
+      validator: (rule, value, callback) => {
+        if (formData.value.menuType === 3 && !value) {
+          callback(new Error("按钮类型必须填写权限标识"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur"
+    }
+  ]
 };
 
 // 获取层级缩进
@@ -316,13 +345,80 @@ const getParentMenuTitle = (parentId: number) => {
   return findTitle(dataList.value) || "";
 };
 
+// 搜索过滤树形数据
+const filterTreeData = (data: any[], keyword: string) => {
+  if (!keyword) {
+    return data;
+  }
+
+  const searchLower = keyword.toLowerCase();
+
+  const filterRecursively = (nodes: any[]) => {
+    return nodes.filter(node => {
+      // 检查当前节点是否匹配
+      const isMatch =
+        node.title && node.title.toLowerCase().includes(searchLower);
+
+      // 检查子节点是否有匹配项
+      if (node.children && node.children.length > 0) {
+        const filteredChildren = filterRecursively(node.children);
+
+        // 如果子节点有匹配项，则当前节点也要保留
+        if (filteredChildren.length > 0) {
+          // 创建新节点并更新children
+          node.children = filteredChildren;
+          return true;
+        }
+      }
+
+      // 返回当前节点是否匹配
+      return isMatch;
+    });
+  };
+
+  return filterRecursively(data);
+};
+
+// 处理搜索
+const handleSearch = () => {
+  if (!searchKeyword.value.trim()) {
+    // 如果搜索关键词为空，显示原始数据
+    dataList.value = [...originalDataList.value];
+  } else {
+    // 否则根据关键词过滤数据
+    dataList.value = filterTreeData(
+      [...originalDataList.value],
+      searchKeyword.value.trim()
+    );
+  }
+};
+
+// 处理查询
+const handleQuery = () => {
+  // 重新获取数据
+  fetchPermissions();
+};
+
 // 获取权限数据
 const fetchPermissions = async () => {
   loading.value = true;
   try {
     const { data } = await getPermissionTree();
     // 将权限数据转换为Pure Admin菜单格式
-    dataList.value = transformPermissionToPureMenus(data);
+    const transformedData = transformPermissionToPureMenus(data);
+
+    // 保存原始数据
+    originalDataList.value = [...transformedData];
+
+    // 如果有搜索关键词，进行过滤；否则显示全部
+    if (searchKeyword.value.trim()) {
+      dataList.value = filterTreeData(
+        transformedData,
+        searchKeyword.value.trim()
+      );
+    } else {
+      dataList.value = [...transformedData];
+    }
   } catch (error) {
     console.error("获取权限数据失败:", error);
   } finally {
@@ -378,7 +474,7 @@ const openDialog = (title: string, row?: any) => {
       name: row.name || "",
       path: row.path || "",
       component: row.component || "",
-      rank: row.rank || 99,
+      sortOrder: row.sortOrder || 99,
       redirect: row.redirect || "",
       icon: row.icon || "", // 确保图标值正确回显
       extraIcon: row.extraIcon || "",
@@ -406,7 +502,7 @@ const openDialog = (title: string, row?: any) => {
       component: row?.component ?? "",
       auths: row?.auths ?? "",
       icon: row?.icon ?? "", // 保持为空，避免组件初始化错误
-      rank: row?.rank ?? 99,
+      sortOrder: row?.sortOrder ?? 99,
       frameSrc: row?.frameSrc ?? "",
       frameLoading: row?.frameLoading ?? true,
       keepAlive: row?.keepAlive ?? false,
@@ -442,7 +538,7 @@ const handleAddChild = (parent: any) => {
     component: "",
     auths: "",
     icon: "", // 确保图标为空
-    rank: 99,
+    sortOrder: 99,
     frameSrc: "",
     frameLoading: true,
     keepAlive: false,
@@ -468,7 +564,7 @@ const submitForm = async () => {
       menuType: formData.value.menuType,
       name: formData.value.name,
       component: formData.value.component,
-      rank: formData.value.rank,
+      sortOrder: formData.value.sortOrder,
       redirect: formData.value.redirect,
       extraIcon: formData.value.extraIcon,
       enterTransition: formData.value.enterTransition,

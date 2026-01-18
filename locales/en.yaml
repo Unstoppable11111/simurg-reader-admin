@@ -165,6 +165,7 @@ menus:
   pureChapter: chapter Manage
   pureBookCategoryList: Book Category Manage
   purebookcomment: Book Comment Manage
+  purefeedback: Feedback Manage
   pureRating: Book Rating Manage
   pureResult: Result Page
   pureSuccess: Success Page

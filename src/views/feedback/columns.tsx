@@ -27,8 +27,8 @@ export function useColumns() {
   });
 
   const columns: TableColumnList = [
-    { label: "反馈ID", prop: "id", width: 100 },
-    { label: "用户ID", prop: "userId", width: 100 },
+    { label: "反馈ID", prop: "id" },
+    { label: "用户ID", prop: "userId" },
     {
       label: "反馈类型",
       prop: "feedbackType",

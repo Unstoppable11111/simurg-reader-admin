@@ -73,9 +73,9 @@ const confirmUpdate = async () => {
         >
           <el-option
             v-for="item in dictData.feedbackType"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+            :key="item.key"
+            :label="item.value"
+            :value="item.key"
           />
         </el-select>
       </el-form-item>
@@ -88,9 +88,9 @@ const confirmUpdate = async () => {
         >
           <el-option
             v-for="item in dictData.feedbackStatus"
-            :key="item.value"
-            :label="item.label"
-            :value="item.value"
+            :key="item.key"
+            :label="item.value"
+            :value="item.key"
           />
         </el-select>
       </el-form-item>
@@ -155,10 +155,10 @@ const confirmUpdate = async () => {
           <el-radio-group v-model="updateForm.status">
             <el-radio
               v-for="item in dictData.feedbackStatus"
-              :key="item.value"
-              :label="Number(item.value)"
+              :key="item.key"
+              :label="Number(item.key)"
             >
-              {{ item.label }}
+              {{ item.value }}
             </el-radio>
           </el-radio-group>
         </el-form-item>

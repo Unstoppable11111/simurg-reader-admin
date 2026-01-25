@@ -6,14 +6,14 @@ const systemRouter = {
     rank: 10 // 排序，数字越小越靠前
   },
   children: [
-    {
-      path: "/system/user/index",
-      name: "SystemUser",
-      component: () => import("@/views/system/user/index.vue"),
-      meta: {
-        title: "用户管理"
-      }
-    },
+    // {
+    //   path: "/system/user/index",
+    //   name: "SystemUser",
+    //   component: () => import("@/views/system/user/index.vue"),
+    //   meta: {
+    //     title: "用户管理"
+    //   }
+    // },
     {
       path: "/system/role/index",
       name: "SystemRole",

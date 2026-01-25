@@ -1,9 +1,19 @@
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue"; // 🟢 增加 onMounted
+import { ref, reactive, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useColumns } from "./columns";
 import { ElMessage } from "element-plus";
-import { ArrowDown, Reading, Comment, Star } from "@element-plus/icons-vue";
+import {
+  ArrowDown,
+  Reading,
+  Comment,
+  Star,
+  Search,
+  Refresh,
+  Plus,
+  Download,
+  Upload
+} from "@element-plus/icons-vue";
 import dayjs from "dayjs";
 import {
   adminCreateBook,
@@ -44,41 +54,29 @@ const isEdit = ref(false);
 const loadingDetail = ref(false);
 const isUploading = ref(false);
 const importRef = ref(null);
+const showMore = ref(false); // 控制更多筛选条件的显示
 
-// 跳转章节管理
+// 跳转逻辑
 const goToChapters = row => {
   router.push({
     name: "chapter",
-    query: {
-      bookId: String(row.bookId),
-      bookTitle: row.title
-    }
+    query: { bookId: String(row.bookId), bookTitle: row.title }
   });
 };
-
-// 跳转评论管理
 const goToComments = row => {
   router.push({
     name: "bookcomment",
-    query: {
-      bookId: String(row.bookId),
-      bookTitle: row.title
-    }
+    query: { bookId: String(row.bookId), bookTitle: row.title }
   });
 };
-
-// 跳转评分管理
 const goToRating = row => {
   router.push({
     name: "rating",
-    query: {
-      bookId: String(row.bookId),
-      bookTitle: row.title
-    }
+    query: { bookId: String(row.bookId), bookTitle: row.title }
   });
 };
 
-// 封面预览列表
+// 封面预览
 const coverPreviewList = computed(() =>
   dataList.value.map(v => v.coverImageUrl).filter(Boolean)
 );
@@ -95,7 +93,6 @@ const formData = reactive({
   categoryIdList: []
 });
 
-// 校验规则
 const rules = {
   title: [{ required: true, message: "请输入书籍标题", trigger: "blur" }],
   description: [{ required: true, message: "请输入书籍描述", trigger: "blur" }],
@@ -107,7 +104,6 @@ const rules = {
   ]
 };
 
-// 重置表单逻辑
 const resetForm = () => {
   Object.assign(formData, {
     bookId: null,
@@ -129,17 +125,6 @@ const openAddDialog = () => {
   dialogVisible.value = true;
 };
 
-const downloadTemplate = async () => {
-  const res = await adminBookdown_template();
-  if (res.code === 200 && res.data) {
-    const link = document.createElement("a");
-    link.href = res.data; // 后端给的绝对路径
-    link.style.display = "none";
-    // 关键：不设置 target="_blank" 就不会跳新窗口
-    link.click();
-  }
-};
-
 const openEditDialog = async row => {
   isEdit.value = true;
   resetForm();
@@ -156,39 +141,26 @@ const openEditDialog = async row => {
       });
     }
   } catch (error) {
-    // ElMessage.error("获取详情失败");
   } finally {
     loadingDetail.value = false;
   }
 };
 
-/**
- * 提交保存
- */
 const submitForm = async () => {
-  if (!formRef.value) return;
-  if (isUploading.value) {
-    ElMessage.warning("图片正在上传中");
-    return;
-  }
-
+  if (!formRef.value || isUploading.value) return;
   try {
     await formRef.value.validate();
     const res = isEdit.value
       ? await adminUpdateBookInfo(formData)
       : await adminCreateBook(formData);
-
     if (res.code === 200) {
       ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
       dialogVisible.value = false;
       refresh();
     }
-  } catch (error) {
-    console.error("提交失败", error);
-  }
+  } catch (error) {}
 };
 
-// 导出
 const handleExport = async () => {
   const ids = dataList.value.map(item => item.bookId).filter(Boolean);
   if (ids.length === 0) return ElMessage.warning("无数据可导出");
@@ -200,11 +172,8 @@ const handleExport = async () => {
   link.click();
 };
 
-// 导入
 const uploadFile = async event => {
   const file = event.target.files?.[0];
-  console.log(file, "file0-----------");
-
   if (!file) return;
   const fd = new FormData();
   fd.append("file", file);
@@ -219,66 +188,209 @@ const uploadFile = async event => {
 
 <template>
   <div class="main-content p-4">
-    <el-form
-      :inline="true"
-      :model="searchParams"
-      class="search-form bg-bg_color w-[99/100] pl-8 pt-[12px]"
+    <div
+      class="search-form-container bg-bg_color p-6 mb-4 rounded-lg shadow-sm border border-gray-100"
     >
-      <el-form-item label="书籍标题">
-        <el-input
-          v-model="searchParams.title"
-          placeholder="请输入标题"
-          clearable
-        />
-      </el-form-item>
+      <el-form :model="searchParams" label-width="80px">
+        <el-row :gutter="20">
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="书籍标题">
+              <el-input
+                v-model="searchParams.title"
+                placeholder="请输入标题"
+                clearable
+                class="!w-full"
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="书籍状态">
+              <el-select
+                v-model="searchParams.bookStatus"
+                placeholder="全部"
+                clearable
+                class="!w-full"
+              >
+                <el-option
+                  v-for="item in dictData.bookStatus || []"
+                  :key="item.key"
+                  :label="item.value"
+                  :value="item.key"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :xs="24" :sm="12" :md="8" :lg="6">
+            <el-form-item label="作品分类">
+              <el-select
+                v-model="searchParams.categoryId"
+                placeholder="分类项"
+                clearable
+                filterable
+                remote
+                :remote-method="remoteMethodCategory"
+                class="!w-full"
+              >
+                <el-option
+                  v-for="item in categoryOptions"
+                  :key="item.categoryId"
+                  :label="item.categoryName"
+                  :value="item.categoryId"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
 
-      <el-form-item label="书籍状态">
-        <el-select
-          v-model="searchParams.bookStatus"
-          placeholder="全部状态"
-          clearable
-          style="width: 140px"
+          <el-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+            class="flex justify-end items-start gap-2"
+          >
+            <el-button type="primary" :icon="Search" @click="handleSearch"
+              >搜索</el-button
+            >
+            <el-button :icon="Refresh" @click="handleReset">重置</el-button>
+            <el-button link type="primary" @click="showMore = !showMore">
+              {{ showMore ? "收起" : "更多" }}
+              <el-icon class="ml-1" :class="{ 'rotate-180': showMore }"
+                ><ArrowDown
+              /></el-icon>
+            </el-button>
+          </el-col>
+        </el-row>
+
+        <transition name="el-zoom-in-top">
+          <div
+            v-show="showMore"
+            class="more-filters mt-4 pt-4 border-t border-dashed border-gray-200"
+          >
+            <el-row :gutter="20">
+              <el-col :span="6">
+                <el-form-item label="书籍ID">
+                  <el-input
+                    v-model="searchParams.bookId"
+                    placeholder="ID"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="作者笔名">
+                  <el-input
+                    v-model="searchParams.penName"
+                    placeholder="笔名"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="作者ID">
+                  <el-input
+                    v-model="searchParams.authorId"
+                    placeholder="作者ID"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="连载状态">
+                  <el-select
+                    v-model="searchParams.serialStatus"
+                    placeholder="全部"
+                    clearable
+                    class="!w-full"
+                  >
+                    <el-option label="连载中" :value="0" /><el-option
+                      label="已完结"
+                      :value="1"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="mt-4">
+              <el-col :span="6">
+                <el-form-item label="是否免费">
+                  <el-select
+                    v-model="searchParams.isFree"
+                    placeholder="全部"
+                    clearable
+                    class="!w-full"
+                  >
+                    <el-option label="否" :value="0" /><el-option
+                      label="是"
+                      :value="1"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="是否签约">
+                  <el-select
+                    v-model="searchParams.isSigned"
+                    placeholder="全部"
+                    clearable
+                    class="!w-full"
+                  >
+                    <el-option label="否" :value="0" /><el-option
+                      label="是"
+                      :value="1"
+                    />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="作品语言">
+                  <el-input
+                    v-model="searchParams.language"
+                    placeholder="zh/en"
+                    clearable
+                  />
+                </el-form-item>
+              </el-col>
+              <el-col :span="6">
+                <el-form-item label="创建时间">
+                  <el-date-picker
+                    v-model="searchParams.createDateRange"
+                    type="daterange"
+                    value-format="YYYY-MM-DD"
+                    range-separator="-"
+                    class="!w-full"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+
+            <el-row :gutter="20" class="mt-4">
+              <el-col :span="12">
+                <el-form-item label="章节更新">
+                  <el-date-picker
+                    v-model="searchParams.latestChapterTimeRange"
+                    type="daterange"
+                    value-format="YYYY-MM-DD"
+                    range-separator="-"
+                    class="!w-full"
+                  />
+                </el-form-item>
+              </el-col>
+            </el-row>
+          </div>
+        </transition>
+      </el-form>
+
+      <div class="toolbar-btns flex gap-3 mt-4 pt-4 border-t border-gray-100">
+        <el-button type="primary" :icon="Plus" @click="openAddDialog"
+          >新增书籍</el-button
         >
-          <el-option
-            v-for="item in dictData.bookStatus || []"
-            :key="item.key"
-            :label="item.value"
-            :value="item.key"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item label="作品分类">
-        <el-select
-          v-model="searchParams.categoryId"
-          placeholder="搜索分类"
-          clearable
-          filterable
-          remote
-          :remote-method="remoteMethodCategory"
-          style="width: 180px"
+        <el-button type="success" :icon="Download" @click="handleExport"
+          >导出数据</el-button
         >
-          <el-option
-            v-for="item in categoryOptions"
-            :key="item.categoryId"
-            :label="item.categoryName"
-            :value="item.categoryId"
-          />
-        </el-select>
-      </el-form-item>
-
-      <el-form-item>
-        <el-button type="primary" @click="handleSearch">搜索</el-button>
-        <el-button @click="handleReset">重置</el-button>
-      </el-form-item>
-
-      <el-form-item style="margin-left: auto">
-        <el-button type="primary" @click="openAddDialog">新增书籍</el-button>
-        <el-button type="success" @click="handleExport">导出Excel</el-button>
-        <el-button type="warning" plain @click="downloadTemplate">
-          下载模板
-        </el-button>
-        <el-button type="info" @click="importRef.click()">导入书籍</el-button>
+        <el-button type="info" :icon="Upload" @click="importRef.click()"
+          >批量导入</el-button
+        >
         <input
           ref="importRef"
           type="file"
@@ -286,8 +398,8 @@ const uploadFile = async event => {
           accept=".xls,.xlsx"
           @change="uploadFile"
         />
-      </el-form-item>
-    </el-form>
+      </div>
+    </div>
 
     <pure-table
       adaptive
@@ -332,35 +444,30 @@ const uploadFile = async event => {
         <el-button type="primary" size="small" @click="openEditDialog(row)"
           >编辑</el-button
         >
-
         <el-button
           type="warning"
           size="small"
           :icon="Reading"
           class="ml-2"
           @click="goToChapters(row)"
+          >章节</el-button
         >
-          章节
-        </el-button>
         <el-button
           color="#626aef"
           size="small"
           :icon="Comment"
           class="ml-2"
           @click="goToComments(row)"
+          >评论</el-button
         >
-          评论
-        </el-button>
-
         <el-button
           color="#13ce66"
           size="small"
           :icon="Star"
           class="ml-2"
           @click="goToRating(row)"
+          >评分</el-button
         >
-          评分
-        </el-button>
 
         <el-dropdown
           trigger="click"
@@ -369,15 +476,7 @@ const uploadFile = async event => {
         >
           <el-button
             size="small"
-            :type="
-              String(row.bookStatus) === '2'
-                ? 'success'
-                : String(row.bookStatus) === '1'
-                  ? 'primary'
-                  : String(row.bookStatus) === '3'
-                    ? 'danger'
-                    : 'info'
-            "
+            :type="String(row.bookStatus) === '2' ? 'success' : 'primary'"
           >
             {{ getDictLabel("bookStatus", row.bookStatus) }}
             <el-icon class="el-icon--right"><ArrowDown /></el-icon>
@@ -388,9 +487,8 @@ const uploadFile = async event => {
                 v-for="item in dictData.bookStatus || []"
                 :key="item.key"
                 :command="item.key"
-                :disabled="String(item.key) === String(row.bookStatus)"
               >
-                切换至: {{ item.value }}
+                {{ item.value }}
               </el-dropdown-item>
             </el-dropdown-menu>
           </template>
@@ -401,9 +499,8 @@ const uploadFile = async event => {
           size="small"
           class="ml-2"
           @click="handleDeleteBook(row.bookId)"
+          >删除</el-button
         >
-          删除
-        </el-button>
       </template>
     </pure-table>
 
@@ -418,26 +515,23 @@ const uploadFile = async event => {
           ref="formRef"
           :model="formData"
           :rules="rules"
-          label-width="120px"
+          label-width="100px"
         >
-          <el-form-item label="书籍标题" prop="title">
-            <el-input v-model="formData.title" placeholder="输入书籍名称" />
-          </el-form-item>
-
-          <el-form-item label="封面图片" prop="coverImageUrl">
-            <ReUpload
+          <el-form-item label="书籍标题" prop="title"
+            ><el-input v-model="formData.title" placeholder="输入书籍名称"
+          /></el-form-item>
+          <el-form-item label="封面图片" prop="coverImageUrl"
+            ><ReUpload
               v-model="formData.coverImageUrl"
               @loading="val => (isUploading = val)"
-            />
-          </el-form-item>
-
+          /></el-form-item>
           <el-form-item label="作品分类" prop="categoryIdList">
             <el-select
               v-model="formData.categoryIdList"
               multiple
               filterable
-              placeholder="选择一个或多个分类"
-              style="width: 100%"
+              placeholder="多选"
+              class="w-full"
             >
               <el-option
                 v-for="item in categoryOptions"
@@ -447,39 +541,69 @@ const uploadFile = async event => {
               />
             </el-select>
           </el-form-item>
-
-          <el-form-item label="书籍描述" prop="description">
-            <el-input
+          <el-form-item label="书籍描述" prop="description"
+            ><el-input
               v-model="formData.description"
               type="textarea"
               :rows="4"
               placeholder="书籍简介..."
-            />
-          </el-form-item>
+          /></el-form-item>
         </el-form>
       </div>
-
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="isUploading"
-          :disabled="isUploading"
-          @click="submitForm"
+        <el-button type="primary" :loading="isUploading" @click="submitForm"
+          >保存</el-button
         >
-          {{ isUploading ? "图片上传中..." : "保存数据" }}
-        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <style scoped>
+.search-form-container {
+  background: #fff;
+  transition: all 0.3s ease;
+}
+
 .ml-2 {
   margin-left: 8px;
 }
 
-.search-form :deep(.el-form-item) {
+.gap-2 {
+  gap: 8px;
+}
+
+.gap-3 {
+  gap: 12px;
+}
+
+/* 展开图标动画 */
+.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.el-icon {
+  transition: transform 0.3s ease;
+}
+
+/* 更多筛选背景微调 */
+.more-filters {
+  padding: 15px;
+  background-color: #fafafa;
+  border-radius: 4px;
+}
+
+/* 解决表单项底部间距问题 */
+:deep(.el-form-item) {
+  margin-bottom: 0 !important;
+}
+
+.search-form-container :deep(.el-row) {
   margin-bottom: 12px;
+}
+
+.search-form-container :deep(.el-row:last-child) {
+  margin-bottom: 0;
 }
 </style>

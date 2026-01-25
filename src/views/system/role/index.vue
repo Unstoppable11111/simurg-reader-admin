@@ -10,35 +10,11 @@ import {
   useResizeObserver
 } from "@pureadmin/utils";
 
-// import Database from "~icons/ri/database-2-line";
-// import More from "~icons/ep/more-filled";
-import Delete from "~icons/ep/delete";
-import EditPen from "~icons/ep/edit-pen";
-import Refresh from "~icons/ep/refresh";
 import Menu from "~icons/ep/menu";
-import AddFill from "~icons/ri/add-circle-line";
-import Close from "~icons/ep/close";
-import Check from "~icons/ep/check";
+import Refresh from "~icons/ep/refresh";
 
 defineOptions({
   name: "SystemRole"
-});
-
-const iconClass = computed(() => {
-  return [
-    "w-[22px]",
-    "h-[22px]",
-    "flex",
-    "justify-center",
-    "items-center",
-    "outline-hidden",
-    "rounded-[4px]",
-    "cursor-pointer",
-    "transition-colors",
-    "hover:bg-[#0000000f]",
-    "dark:hover:bg-[#ffffff1f]",
-    "dark:hover:text-[#ffffffd9]"
-  ];
 });
 
 const treeRef = ref();
@@ -62,17 +38,13 @@ const {
   isExpandAll,
   isSelectAll,
   treeSearchValue,
-  // buttonClass,
   onSearch,
   resetForm,
-  openDialog,
   handleMenu,
   handleSave,
-  handleDelete,
   filterMethod,
   transformI18n,
   onQueryChanged,
-  // handleDatabase,
   handleSizeChange,
   handleCurrentChange,
   handleSelectionChange
@@ -114,17 +86,6 @@ onMounted(() => {
           class="w-[180px]!"
         />
       </el-form-item>
-      <el-form-item label="状态：" prop="status">
-        <el-select
-          v-model="form.status"
-          placeholder="请选择状态"
-          clearable
-          class="w-[180px]!"
-        >
-          <el-option label="已启用" value="1" />
-          <el-option label="已停用" value="0" />
-        </el-select>
-      </el-form-item>
       <el-form-item>
         <el-button
           type="primary"
@@ -151,16 +112,9 @@ onMounted(() => {
         :columns="columns"
         @refresh="onSearch"
       >
-        <template #buttons>
-          <el-button
-            type="primary"
-            :icon="useRenderIcon(AddFill)"
-            @click="openDialog()"
-          >
-            新增角色
-          </el-button>
-        </template>
-        <template v-slot="{ size, dynamicColumns }">
+        <template #buttons />
+
+        <template v-slot="{ size }">
           <pure-table
             ref="tableRef"
             align-whole="center"
@@ -172,7 +126,7 @@ onMounted(() => {
             :row-style="rowStyle"
             :adaptiveConfig="{ offsetBottom: 108 }"
             :data="dataList"
-            :columns="dynamicColumns"
+            :columns="columns"
             :pagination="{ ...pagination, size }"
             :header-cell-style="{
               background: 'var(--el-fill-color-light)',
@@ -188,74 +142,11 @@ onMounted(() => {
                 link
                 type="primary"
                 :size="size"
-                :icon="useRenderIcon(EditPen)"
-                @click="openDialog('修改', row)"
-              >
-                修改
-              </el-button>
-              <el-popconfirm
-                :title="`是否确认删除角色名称为${row.roleName}的这条数据`"
-                @confirm="handleDelete(row)"
-              >
-                <template #reference>
-                  <el-button
-                    class="reset-margin"
-                    link
-                    type="primary"
-                    :size="size"
-                    :icon="useRenderIcon(Delete)"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-popconfirm>
-              <el-button
-                class="reset-margin"
-                link
-                type="primary"
-                :size="size"
                 :icon="useRenderIcon(Menu)"
                 @click="handleMenu(row)"
               >
                 权限
               </el-button>
-              <!-- <el-dropdown>
-              <el-button
-                class="ml-3 mt-[2px]"
-                link
-                type="primary"
-                :size="size"
-                :icon="useRenderIcon(More)"
-              />
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item>
-                    <el-button
-                      :class="buttonClass"
-                      link
-                      type="primary"
-                      :size="size"
-                      :icon="useRenderIcon(Menu)"
-                      @click="handleMenu"
-                    >
-                      菜单权限
-                    </el-button>
-                  </el-dropdown-item>
-                  <el-dropdown-item>
-                    <el-button
-                      :class="buttonClass"
-                      link
-                      type="primary"
-                      :size="size"
-                      :icon="useRenderIcon(Database)"
-                      @click="handleDatabase"
-                    >
-                      数据权限
-                    </el-button>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown> -->
             </template>
           </pure-table>
         </template>
@@ -267,30 +158,8 @@ onMounted(() => {
       >
         <div class="flex justify-between w-full px-3 pt-5 pb-4">
           <div class="flex">
-            <span :class="iconClass">
-              <IconifyIconOffline
-                v-tippy="{
-                  content: '关闭'
-                }"
-                class="dark:text-white"
-                width="18px"
-                height="18px"
-                :icon="Close"
-                @click="handleMenu"
-              />
-            </span>
-            <span :class="[iconClass, 'ml-2']">
-              <IconifyIconOffline
-                v-tippy="{
-                  content: '保存菜单权限'
-                }"
-                class="dark:text-white"
-                width="18px"
-                height="18px"
-                :icon="Check"
-                @click="handleSave"
-              />
-            </span>
+            <el-button type="primary" @click="handleSave"> 保存权限 </el-button>
+            <el-button @click="handleMenu"> 关闭 </el-button>
           </div>
           <p class="font-bold truncate">
             权限配置

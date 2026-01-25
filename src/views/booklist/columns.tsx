@@ -6,24 +6,31 @@ import {
 import { getCategoryList } from "@/api/bookcategory";
 import { ref, onMounted, reactive } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
-// 🟢 引入你刚才展示的这个文件
 import { usePublicDict } from "@/utils/dict";
+
 export function useColumns() {
-  // 🟢 这里的解构必须完全对应你 usePublicDict 暴露的名称
   const { dictData, getDictLabel, refreshDict } = usePublicDict();
 
   const loading = ref(true);
   const dataList = ref([]);
 
-  // --- 分页与查询参数 ---
+  // --- 1. 补全响应式查询参数 ---
   const paramsData = reactive({
     page: 1,
     size: 20,
     orderDirection: "desc",
     title: "",
+    bookId: undefined, // 新增
     authorId: undefined,
+    penName: "", // 新增
     bookStatus: undefined,
-    categoryId: undefined
+    categoryId: undefined,
+    serialStatus: undefined, // 新增
+    isFree: undefined, // 新增
+    isSigned: undefined, // 新增
+    language: "", // 新增
+    createDateRange: [], // 新增
+    latestChapterTimeRange: [] // 新增
   });
 
   const pagination = reactive({
@@ -39,21 +46,46 @@ export function useColumns() {
   const categoryOptions = ref([]);
   const categoryLoading = ref(false);
 
-  // --- 业务请求逻辑 ---
+  // --- 2. 优化业务请求逻辑 ---
   const fetchData = async () => {
     loading.value = true;
     try {
-      const queryParams = {
+      // 组装分页和排序
+      const queryParams: any = {
         page: pagination.currentPage,
         size: pagination.pageSize,
-        orderDirection: paramsData.orderDirection,
-        ...(paramsData.title && { title: paramsData.title }),
-        ...(paramsData.authorId && { authorId: paramsData.authorId }),
-        ...(paramsData.bookStatus !== undefined && {
-          bookStatus: paramsData.bookStatus
-        }),
-        ...(paramsData.categoryId && { categoryId: paramsData.categoryId })
+        orderDirection: paramsData.orderDirection
       };
+
+      // 遍历 paramsData，将有值的字段自动加入请求参数 (排除掉不需要传给接口的或特殊处理的字段)
+      Object.keys(paramsData).forEach(key => {
+        const val = paramsData[key];
+        // 排除掉不需要传原始值的字段
+        if (
+          [
+            "page",
+            "size",
+            "createDateRange",
+            "latestChapterTimeRange"
+          ].includes(key)
+        )
+          return;
+
+        if (val !== "" && val !== undefined && val !== null) {
+          queryParams[key] = val;
+        }
+      });
+
+      // 处理时间范围字段 (根据后端接口要求拆分字段)
+      if (paramsData.createDateRange?.length === 2) {
+        queryParams.createTimeStart = paramsData.createDateRange[0];
+        queryParams.createTimeEnd = paramsData.createDateRange[1];
+      }
+      if (paramsData.latestChapterTimeRange?.length === 2) {
+        queryParams.latestChapterTimeStart =
+          paramsData.latestChapterTimeRange[0];
+        queryParams.latestChapterTimeEnd = paramsData.latestChapterTimeRange[1];
+      }
 
       const res = await getAdminBookList(queryParams);
       if (res.code === 200 && res.data?.records) {
@@ -70,7 +102,7 @@ export function useColumns() {
     }
   };
 
-  /** 获取分类列表（业务数据） */
+  /** 获取分类列表 */
   const fetchCategoryOptions = async (query = "") => {
     categoryLoading.value = true;
     try {
@@ -89,18 +121,16 @@ export function useColumns() {
     }
   };
 
-  /** 修改书籍状态（连载/审核） */
+  /** 修改书籍状态 */
   const handleUpdateStatus = async (row: any, updateParams: any) => {
     const isBookStatus = updateParams.bookStatus !== undefined;
     const typeLabel = isBookStatus ? "审核" : "连载";
-
     const dictName = isBookStatus ? "bookStatus" : "bookSerialStatus";
     const newValue = isBookStatus
       ? updateParams.bookStatus
       : updateParams.serialStatus;
     const targetLabel = getDictLabel(dictName, newValue);
 
-    // 记录旧值用于出错时回滚（如果用了 v-model 的话需要，如果是 :model-value 则非必须，但留着更稳健）
     const oldBookStatus = row.bookStatus;
     const oldSerialStatus = row.serialStatus;
 
@@ -118,69 +148,31 @@ export function useColumns() {
 
       if (res.code === 200) {
         ElMessage.success(`${typeLabel}状态更新成功`);
-
-        // ✅ 修正点：直接将 updateParams 中的所有键值对同步到 row 对象
-        // 这样无论是 bookStatus 还是 serialStatus 都会立即在界面响应
         Object.assign(row, updateParams);
       } else {
         throw new Error(res.msg || "更新失败");
       }
     } catch (error: any) {
-      // 如果用户取消或接口失败，且你使用的是 v-model，则需要手动回滚状态
-      if (error === "cancel") {
-        // 如果是单向绑定 :model-value，其实这里什么都不用做，开关自己就不会变
-        // 如果是 v-model，则需要下面这两行：
+      if (error !== "cancel") {
         row.bookStatus = oldBookStatus;
         row.serialStatus = oldSerialStatus;
-      } else {
-        row.bookStatus = oldBookStatus;
-        row.serialStatus = oldSerialStatus;
-        // ElMessage.error(error.message || "更新失败");
       }
     }
   };
 
-  // --- 表格列配置 ---
+  // --- 表格列配置 (保持不变) ---
   const columns: TableColumnList = [
-    { label: "书籍ID", prop: "bookId", width: 200 },
-    { label: "封面", prop: "coverImageUrl", slot: "coverImageUrl", width: 200 },
-    { label: "标题", prop: "title", align: "left" },
-    { label: "语言", prop: "language", align: "left" },
-    {
-      label: "书籍总字数（已发布）",
-      prop: "totalWordCountPublished",
-      align: "left"
-    },
-    {
-      label: "书籍评分",
-      prop: "rating",
-      align: "left"
-    },
-    {
-      label: "书籍浏览量",
-      prop: "bookViews",
-      align: "left"
-    },
-    {
-      label: "累计收藏数",
-      prop: "totalFavorites",
-      align: "left"
-    },
-    {
-      label: "累计分享数",
-      prop: "totalShares",
-      align: "left"
-    },
-    {
-      label: "累计点赞数",
-      prop: "totalLikes",
-      align: "left"
-    },
-    {
-      label: "累计评论数",
-      prop: "totalComments",
-      align: "left"
-    },
+    { label: "书籍ID", prop: "bookId", width: 100 },
+    { label: "封面", prop: "coverImageUrl", slot: "coverImageUrl", width: 100 },
+    { label: "标题", prop: "title", align: "left", width: 150 },
+    { label: "语言", prop: "language", align: "left", width: 80 },
+    { label: "书籍总字数", prop: "totalWordCountPublished", align: "left" },
+    { label: "书籍评分", prop: "rating", align: "left" },
+    { label: "书籍浏览量", prop: "bookViews", align: "left" },
+    { label: "累计收藏数", prop: "totalFavorites", align: "left" },
+    { label: "累计分享数", prop: "totalShares", align: "left" },
+    { label: "累计点赞数", prop: "totalLikes", align: "left" },
+    { label: "累计评论数", prop: "totalComments", align: "left" },
     {
       label: "连载状态",
       prop: "serialStatus",
@@ -191,7 +183,6 @@ export function useColumns() {
       label: "审核状态",
       prop: "bookStatus",
       width: 120,
-      // 🟢 格式化输出
       formatter: ({ bookStatus }) => getDictLabel("bookStatus", bookStatus)
     },
     {
@@ -199,12 +190,11 @@ export function useColumns() {
       prop: "operation",
       slot: "operation",
       fixed: "right",
-      width: 430
+      width: 520
     }
   ];
 
   onMounted(() => {
-    // 🟢 对应你 Hook 里的方法名，虽然 Hook 的 onMounted 已经调了，这里手动调一下 refreshDict 也没问题（双保险）
     refreshDict();
     fetchData();
     fetchCategoryOptions();
@@ -216,11 +206,8 @@ export function useColumns() {
     dataList,
     pagination,
     adaptiveConfig: { offsetBottom: 110 },
-
-    // 🟢 暴露给 index.vue
     dictData,
     getDictLabel,
-
     onSizeChange: val => {
       pagination.pageSize = val;
       fetchData();
@@ -241,7 +228,7 @@ export function useColumns() {
           fetchData();
         }
       } catch (error) {
-        console.error("删除失败:", error);
+        console.log("error", error);
       }
     },
     handleUpdateStatus,
@@ -250,10 +237,22 @@ export function useColumns() {
       pagination.currentPage = 1;
       fetchData();
     },
+    // --- 3. 重置方法也需要补全 ---
     handleReset: () => {
-      paramsData.title = "";
-      paramsData.bookStatus = undefined;
-      paramsData.categoryId = undefined;
+      Object.assign(paramsData, {
+        title: "",
+        bookId: undefined,
+        authorId: undefined,
+        penName: "",
+        bookStatus: undefined,
+        categoryId: undefined,
+        serialStatus: undefined,
+        isFree: undefined,
+        isSigned: undefined,
+        language: "",
+        createDateRange: [],
+        latestChapterTimeRange: []
+      });
       pagination.currentPage = 1;
       fetchData();
     },

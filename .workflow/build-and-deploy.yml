@@ -1,0 +1,59 @@
+name: build-and-deploy
+displayName: '前端构建与自动化部署'
+triggers:
+  push:
+    branches:
+      - dev_001
+      - master
+
+stages:
+  - name: compile
+    displayName: '云端打包构建'
+    strategy:
+      natural: true
+    steps:
+      - step: node-build@1.0
+        name: 'Node 构建与打包'
+        inputs:
+          node-version: 20.10.0
+          script: |
+            corepack enable
+            corepack prepare pnpm@latest --activate
+            pnpm install --frozen-lockfile
+            pnpm build
+            tar -czvf dist.tar.gz -C dist .
+        artifacts:
+          - dist.tar.gz
+
+  - name: deploy
+    displayName: '部署到宝塔服务器'
+    strategy:
+      natural: true
+    steps:
+      - step: scp-upload@1.0
+        name: '上传构建包至服务器'
+        inputs:
+          host: 111.228.38.154
+          port: 22
+          username: root
+          ssh-key: ${{ secrets.SSH_KEY }}
+          source: dist.tar.gz
+          target: /tmp/dist.tar.gz
+
+      - step: ssh-exec@1.0
+        name: '解压并更新宝塔网站目录'
+        inputs:
+          host: 111.228.38.154
+          port: 22
+          username: root
+          ssh-key: ${{ secrets.SSH_KEY }}
+          script: |
+            # 宝塔站点物理路径（若宝塔后台目录不同请在此修改）
+            WEB_DIR="/www/wwwroot/simurg-reader-admin"
+            mkdir -p $WEB_DIR
+            tar -xzvf /tmp/dist.tar.gz -C $WEB_DIR
+            # 修复宝塔 www 用户权限，防止权限拒绝
+            chown -R www:www $WEB_DIR
+            chmod -R 755 $WEB_DIR
+            rm -f /tmp/dist.tar.gz
+            echo "部署成功！"

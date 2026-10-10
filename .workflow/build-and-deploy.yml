@@ -8,7 +8,7 @@ triggers:
         - dev_001
         - master
 
-# 关键：显式关联 Gitee 通用变量
+# 显式关联 Gitee 通用变量中的服务器密码
 variables:
   global:
     - SERVER_PWD
@@ -25,19 +25,12 @@ stages:
         nodeVersion: 20.10.0
         commands:
           - set -e
-          # 校验是否注入了密码
-          - if [ -z "$SERVER_PWD" ]; then echo "错误：未获取到 SERVER_PWD 密码变量，请在 Gitee 流水线【通用变量】中确认！"; exit 1; fi
-          # 1. 编译打包
+          # 1. 启用 pnpm
           - corepack enable
           - corepack prepare pnpm@latest --activate
+          # 2. 安装依赖并构建产物
           - pnpm install --frozen-lockfile
+          - pnpm add -D node-ssh
           - pnpm build
-          # 记录部署时间标记
-          - date "+%Y-%m-%d %H:%M:%S" > dist/deploy_time.txt
-          # 2. 安装传输工具
-          - apt-get update && apt-get install -y sshpass
-          # 3. 远程同步到宝塔网站目录
-          - sshpass -p "$SERVER_PWD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r dist/* root@111.228.38.154:/www/wwwroot/simurg-admin/
-          # 4. 远程执行权限修复，并刷新目录时间戳（使得在宝塔面板上可见最新时间）
-          - sshpass -p "$SERVER_PWD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@111.228.38.154 "touch /www/wwwroot/simurg-admin && chown -R www:www /www/wwwroot/simurg-admin && chmod -R 755 /www/wwwroot/simurg-admin"
-          - echo "自动化构建并部署到宝塔成功！"
+          # 3. 运行 Node 原生 SFTP 传输脚本（无需 root/apt 权限，稳定可靠）
+          - node build/deploy.mjs

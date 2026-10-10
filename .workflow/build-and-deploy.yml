@@ -4,8 +4,9 @@ displayName: '前端构建与自动化部署'
 triggers:
   push:
     branches:
-      - dev_001
-      - master
+      precise:
+        - dev_001
+        - master
 
 # 关键：显式关联 Gitee 通用变量
 variables:

@@ -13,10 +13,13 @@ stages:
     nodeVersion: 24.13.0
     commands:
     - set -e
+    - npm config set registry https://registry.npmmirror.com
     - npm install -g pnpm@9 --prefix ~/.local
     - export PATH=~/.local/bin:$PATH
+    - pnpm config set registry https://registry.npmmirror.com
     - pnpm install --frozen-lockfile
     - pnpm build
+    - tar -czf dist.tar.gz -C dist .
     - node build/deploy.mjs
     strategy:
       retry: "0"

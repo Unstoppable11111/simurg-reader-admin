@@ -541,13 +541,13 @@ const uploadFile = async event => {
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑书籍' : '新增书籍'"
-      width="840px"
+      width="780px"
       top="5vh"
       @close="resetForm"
     >
       <div
         v-loading="loadingDetail"
-        class="max-h-[75vh] overflow-y-auto px-1 pr-2"
+        class="max-h-[72vh] overflow-y-auto overflow-x-hidden px-4 py-1"
       >
         <el-form
           ref="formRef"
@@ -556,34 +556,44 @@ const uploadFile = async event => {
           label-width="85px"
           class="book-dialog-form"
         >
-          <el-row :gutter="24">
-            <!-- 左侧：封面上传（契合 3:4 书籍封面比例） -->
-            <el-col :span="8">
-              <el-form-item
-                label="封面图片"
-                prop="coverImageUrl"
-                class="book-cover-form-item"
+          <!-- 书籍标题 -->
+          <el-form-item label="书籍标题" prop="title">
+            <el-input
+              v-model="formData.title"
+              placeholder="请输入书籍名称"
+              clearable
+            />
+          </el-form-item>
+
+          <!-- 封面图片 -->
+          <el-form-item label="封面图片" prop="coverImageUrl">
+            <div class="flex items-start gap-4">
+              <ReUpload
+                v-model="formData.coverImageUrl"
+                class="book-cover-upload flex-shrink-0"
+                @loading="val => (isUploading = val)"
+              />
+              <div
+                class="text-xs bg-slate-50 border border-slate-100 rounded-lg p-3 flex flex-col justify-center gap-1.5 text-slate-500 leading-normal"
               >
-                <div class="flex flex-col items-center w-full">
-                  <ReUpload
-                    v-model="formData.coverImageUrl"
-                    tip="建议尺寸：600 × 800 像素（比例 3:4），大小不超过 2MB，支持 JPG / PNG"
-                    class="book-cover-upload"
-                    @loading="val => (isUploading = val)"
-                  />
+                <div
+                  class="font-medium text-slate-700 flex items-center gap-1.5"
+                >
+                  <span class="w-1.5 h-1.5 bg-primary rounded-full" />
+                  <span>封面上传规范说明</span>
                 </div>
-              </el-form-item>
-            </el-col>
+                <div class="space-y-1 text-slate-400 pl-3">
+                  <div>• 建议尺寸：600 × 800 像素（标准 3:4 比例）</div>
+                  <div>• 支持格式：JPG、JPEG、PNG</div>
+                  <div>• 大小限制：单张不超过 2MB</div>
+                </div>
+              </div>
+            </div>
+          </el-form-item>
 
-            <!-- 右侧：书籍核心属性 -->
-            <el-col :span="16">
-              <el-form-item label="书籍标题" prop="title">
-                <el-input
-                  v-model="formData.title"
-                  placeholder="请输入书籍名称"
-                />
-              </el-form-item>
-
+          <!-- 作品分类 与 作品语言 -->
+          <el-row :gutter="20">
+            <el-col :span="12">
               <el-form-item label="作品分类" prop="categoryIdList">
                 <el-select
                   v-model="formData.categoryIdList"
@@ -592,7 +602,7 @@ const uploadFile = async event => {
                   collapse-tags-tooltip
                   filterable
                   placeholder="请选择作品分类（支持多选）"
-                  class="w-full"
+                  class="!w-full"
                 >
                   <el-option
                     v-for="item in categoryOptions"
@@ -602,54 +612,56 @@ const uploadFile = async event => {
                   />
                 </el-select>
               </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="作品语言" prop="language">
+                <el-select
+                  v-model="formData.language"
+                  placeholder="选择或输入语言"
+                  filterable
+                  allow-create
+                  class="!w-full"
+                >
+                  <el-option label="中文 (zh)" value="zh" />
+                  <el-option label="英语 (en)" value="en" />
+                  <el-option label="日语 (ja)" value="ja" />
+                  <el-option label="韩语 (ko)" value="ko" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-              <el-row :gutter="16">
-                <el-col :span="13">
-                  <el-form-item label="作品语言" prop="language">
-                    <el-select
-                      v-model="formData.language"
-                      placeholder="选择或输入语言"
-                      filterable
-                      allow-create
-                      class="w-full"
-                    >
-                      <el-option label="中文 (zh)" value="zh" />
-                      <el-option label="英语 (en)" value="en" />
-                      <el-option label="日语 (ja)" value="ja" />
-                      <el-option label="韩语 (ko)" value="ko" />
-                    </el-select>
-                  </el-form-item>
-                </el-col>
-                <el-col :span="11">
-                  <el-form-item
-                    label="是否免费"
-                    prop="isFree"
-                    label-width="70px"
-                  >
-                    <el-radio-group v-model="formData.isFree">
-                      <el-radio :value="0">收费</el-radio>
-                      <el-radio :value="1">免费</el-radio>
-                    </el-radio-group>
-                  </el-form-item>
-                </el-col>
-              </el-row>
-
+          <!-- 是否免费 与 主角介绍 -->
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="是否免费" prop="isFree">
+                <el-radio-group v-model="formData.isFree">
+                  <el-radio :value="0">收费</el-radio>
+                  <el-radio :value="1">免费</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
               <el-form-item label="主角介绍" prop="protagonistIntroduction">
                 <el-input
                   v-model="formData.protagonistIntroduction"
                   placeholder="选填：主要角色介绍或性格设定"
-                />
-              </el-form-item>
-
-              <el-form-item label="作者感言" prop="authorTestimonial">
-                <el-input
-                  v-model="formData.authorTestimonial"
-                  placeholder="选填：作者写给读者的话"
+                  clearable
                 />
               </el-form-item>
             </el-col>
           </el-row>
 
+          <!-- 作者感言 -->
+          <el-form-item label="作者感言" prop="authorTestimonial">
+            <el-input
+              v-model="formData.authorTestimonial"
+              placeholder="选填：作者写给读者的话"
+              clearable
+            />
+          </el-form-item>
+
+          <!-- 书籍描述 -->
           <el-form-item label="书籍描述" prop="description">
             <el-input
               v-model="formData.description"
@@ -662,7 +674,7 @@ const uploadFile = async event => {
           <!-- 初始首章内容（创建新书必填，编辑时通过专门的章节管理维护） -->
           <div
             v-if="!isEdit"
-            class="mt-4 p-4 rounded-lg bg-slate-50 border border-slate-200"
+            class="mt-2 mb-1 p-4 rounded-lg bg-slate-50 border border-slate-200"
           >
             <div
               class="mb-3 font-semibold text-gray-800 text-sm flex items-center gap-2"
@@ -677,6 +689,7 @@ const uploadFile = async event => {
               <el-input
                 v-model="formData.chapterTitle"
                 placeholder="例如：第一章 初入江湖"
+                clearable
               />
             </el-form-item>
             <el-form-item label="首章正文" prop="chapterContent" class="!mb-0">
@@ -759,26 +772,12 @@ const uploadFile = async event => {
   margin-bottom: 18px;
 }
 
-.book-cover-form-item :deep(.el-form-item__label) {
-  width: 100% !important;
-  justify-content: flex-start;
-  margin-bottom: 6px;
-  font-weight: 500;
-}
-
-.book-cover-form-item :deep(.el-form-item__content) {
-  margin-left: 0 !important;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 /* 3:4 书籍封面卡片样式 */
 .book-cover-upload :deep(.el-upload--picture-card),
 .book-cover-upload :deep(.el-upload-list--picture-card .el-upload-list__item) {
-  width: 135px;
-  height: 180px;
-  border-radius: 8px;
+  width: 114px;
+  height: 152px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
@@ -791,12 +790,5 @@ const uploadFile = async event => {
 .book-cover-upload :deep(.el-upload--picture-card:hover) {
   border-color: var(--el-color-primary, #409eff);
   background-color: #f0f7ff;
-}
-
-.book-cover-upload :deep(.el-upload__tip) {
-  text-align: center;
-  max-width: 190px;
-  line-height: 1.4;
-  margin-top: 8px;
 }
 </style>

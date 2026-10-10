@@ -1,35 +1,35 @@
-version: '1.0'
+version: "1.0"
 name: build-and-deploy
-displayName: '前端构建与自动化部署'
+displayName: 前端构建与自动化部署
+stages:
+- name: 构建并部署到宝塔
+  displayName: 构建并部署到宝塔
+  strategy: naturally
+  trigger: auto
+  steps:
+  - step: build@nodejs
+    name: build_and_deploy
+    displayName: Node.js 打包与同步
+    nodeVersion: 24.13.0
+    commands:
+    - set -e
+    - npm install -g pnpm --prefix ~/.local
+    - export PATH=~/.local/bin:$PATH
+    - pnpm install --frozen-lockfile
+    - pnpm build
+    - node build/deploy.mjs
+    strategy:
+      retry: "0"
 triggers:
+  trigger: auto
   push:
     branches:
+      prefix: []
       precise:
-        - dev_001
-        - master
-
-# 显式关联 Gitee 通用变量中的服务器密码
+      - dev_001
+      - master
+      include: []
+notify: []
 variables:
   global:
-    - SERVER_PWD
-
-stages:
-  - name: compile_and_deploy
-    displayName: '构建并部署到宝塔'
-    strategy: naturally
-    trigger: auto
-    steps:
-      - step: build@nodejs
-        name: build_and_deploy
-        displayName: 'Node.js 打包与同步'
-        nodeVersion: 20.10.0
-        commands:
-          - set -e
-          # 1. 在用户目录安装 pnpm，解决只读文件系统 (EROFS) 报错
-          - npm install -g pnpm --prefix ~/.local
-          - export PATH=~/.local/bin:$PATH
-          # 2. 安装项目依赖并打包
-          - pnpm install --frozen-lockfile
-          - pnpm build
-          # 3. 运行 Node 原生 SFTP 传输脚本
-          - node build/deploy.mjs
+  - SERVER_PWD

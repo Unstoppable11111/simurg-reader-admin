@@ -1,3 +1,4 @@
+version: '1.0'
 name: build-and-deploy
 displayName: '前端构建与自动化部署'
 triggers:
@@ -7,53 +8,25 @@ triggers:
       - master
 
 stages:
-  - name: compile
-    displayName: '云端打包构建'
-    strategy:
-      natural: true
+  - name: compile_and_deploy
+    displayName: '构建并部署到宝塔'
+    strategy: naturally
+    trigger: auto
     steps:
-      - step: node-build@1.0
-        name: 'Node 构建与打包'
-        inputs:
-          node-version: 20.10.0
-          script: |
-            corepack enable
-            corepack prepare pnpm@latest --activate
-            pnpm install --frozen-lockfile
-            pnpm build
-            tar -czvf dist.tar.gz -C dist .
-        artifacts:
-          - dist.tar.gz
-
-  - name: deploy
-    displayName: '部署到宝塔服务器'
-    strategy:
-      natural: true
-    steps:
-      - step: scp-upload@1.0
-        name: '上传构建包至服务器'
-        inputs:
-          host: 111.228.38.154
-          port: 22
-          username: root
-          ssh-key: ${{ secrets.SSH_KEY }}
-          source: dist.tar.gz
-          target: /tmp/dist.tar.gz
-
-      - step: ssh-exec@1.0
-        name: '解压并更新宝塔网站目录'
-        inputs:
-          host: 111.228.38.154
-          port: 22
-          username: root
-          ssh-key: ${{ secrets.SSH_KEY }}
-          script: |
-            # 宝塔站点物理路径
-            WEB_DIR="/www/wwwroot/simurg-admin"
-            mkdir -p $WEB_DIR
-            tar -xzvf /tmp/dist.tar.gz -C $WEB_DIR
-            # 修复宝塔 www 用户权限，防止权限拒绝
-            chown -R www:www $WEB_DIR
-            chmod -R 755 $WEB_DIR
-            rm -f /tmp/dist.tar.gz
-            echo "部署成功！"
+      - step: build@nodejs
+        name: build_and_deploy
+        displayName: 'Node.js 打包与同步'
+        nodeVersion: 20.10.0
+        commands:
+          # 1. 安装 pnpm 并构建产物
+          - corepack enable
+          - corepack prepare pnpm@latest --activate
+          - pnpm install --frozen-lockfile
+          - pnpm build
+          # 2. 安装 sshpass 传输工具（免在服务器安装任何 Agent）
+          - apt-get update && apt-get install -y sshpass
+          # 3. 远程同步到宝塔网站目录
+          - sshpass -p "$SERVER_PWD" scp -o StrictHostKeyChecking=no -r dist/* root@111.228.38.154:/www/wwwroot/simurg-admin/
+          # 4. 远程执行权限修复
+          - sshpass -p "$SERVER_PWD" ssh -o StrictHostKeyChecking=no root@111.228.38.154 "chown -R www:www /www/wwwroot/simurg-admin && chmod -R 755 /www/wwwroot/simurg-admin"
+          - echo "自动化构建并部署到宝塔成功！"

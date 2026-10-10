@@ -21,7 +21,8 @@ import { useUserStoreHook } from "@/store/modules/user";
 import { initRouter, getTopMenu } from "@/router/utils";
 import { bg, avatar, illustration } from "./utils/static";
 import { ReImageVerify } from "@/components/ReImageVerify";
-import { ref, toRaw, reactive, watch, computed } from "vue";
+import { removeToken } from "@/utils/auth";
+import { ref, toRaw, reactive, watch, computed, onMounted } from "vue";
 import { useRenderIcon } from "@/components/ReIcon/src/hooks";
 import { useTranslationLang } from "@/layout/hooks/useTranslationLang";
 import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
@@ -120,6 +121,11 @@ watch(checked, bool => {
 });
 watch(loginDay, value => {
   useUserStoreHook().SET_LOGINDAY(value);
+});
+
+onMounted(() => {
+  // 进入登录页主动清理过期的 Token 与登录态缓存，避免历史脏数据污染
+  removeToken();
 });
 </script>
 

@@ -10,7 +10,7 @@ import type {
   PureHttpRequestConfig
 } from "./types.d";
 import { stringify } from "qs";
-import { getToken, formatToken } from "@/utils/auth";
+import { getToken, formatToken, removeToken } from "@/utils/auth";
 import { useUserStoreHook } from "@/store/modules/user";
 import { ElMessage } from "element-plus";
 
@@ -74,10 +74,18 @@ class PureHttp {
         return whiteList.some(url => config.url.endsWith(url))
           ? config
           : new Promise(resolve => {
+              // 优先保留请求显式配置的 Authorization（例如登录过程中获取用户信息所传的新 Token）
+              if (config.headers?.["Authorization"]) {
+                return resolve(config);
+              }
+
               const data = getToken();
               if (data) {
                 const now = new Date().getTime();
-                const expired = parseInt(data.expires) - now <= 0;
+                const expireTime = Number(
+                  data.accessTokenExpire || (data as any).expires
+                );
+                const expired = expireTime ? expireTime - now <= 0 : false;
                 if (expired) {
                   if (!PureHttp.isRefreshing) {
                     PureHttp.isRefreshing = true;
@@ -88,6 +96,10 @@ class PureHttp {
                         config.headers["Authorization"] = formatToken(token);
                         PureHttp.requests.forEach(cb => cb(token));
                         PureHttp.requests = [];
+                      })
+                      .catch(() => {
+                        // 刷新失败时清理无效凭证
+                        removeToken();
                       })
                       .finally(() => {
                         PureHttp.isRefreshing = false;
@@ -146,34 +158,30 @@ class PureHttp {
         const $error = error;
         $error.isCancelRequest = Axios.isCancel($error);
 
-        // 🟢 处理 HTTP 401 或其他异常状态码
+        // 🟢 处理 HTTP 401 登录态失效
         if ($error.response && $error.response.status === 401) {
           const data = $error.response.data;
+          const isAtLogin = window.location.href.includes("/login");
 
-          // 针对你遇到的 code: 2008 (用户未登录)
-          if (data?.code === 2008) {
-            const isAtLogin = window.location.href.includes("/login");
-            console.log("Response data:", PureHttp.isRedirecting, isAtLogin);
+          // 任何 401 均代表凭证已失效，立即彻底清理本地缓存
+          removeToken();
 
-            // 如果不在登录页 且 没有正在执行跳转
-            if (!isAtLogin && !PureHttp.isRedirecting) {
-              PureHttp.isRedirecting = true; // 加锁
+          // 如果不在登录页 且 没有正在执行跳转
+          if (!isAtLogin && !PureHttp.isRedirecting) {
+            PureHttp.isRedirecting = true; // 加锁
 
-              ElMessage.closeAll();
-              ElMessage.error(data.msg || "登录已失效，请重新登录");
+            ElMessage.closeAll();
+            ElMessage.error(data?.msg || "登录已失效，请重新登录");
 
-              // 1. 彻底清除本地 Token 和 用户状态 (防止路由守卫循环请求)
-              useUserStoreHook().logOut();
+            useUserStoreHook().logOut();
 
-              // 2. 延迟跳转，给提示留出显示时间，并防止闪烁
-              setTimeout(() => {
-                // 使用 replace 替换当前历史记录，防止回退死循环
-                window.location.replace("/login");
-                PureHttp.isRedirecting = false; // 解锁
-              }, 300);
-            }
-            return Promise.reject($error);
+            // 延迟跳转，给提示留出显示时间，并防止闪烁
+            setTimeout(() => {
+              window.location.replace("/login");
+              PureHttp.isRedirecting = false; // 解锁
+            }, 300);
           }
+          return Promise.reject($error);
         }
 
         // 非取消请求的普通网络错误

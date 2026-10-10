@@ -1,4 +1,5 @@
 import { http } from "@/utils/http";
+import { removeToken } from "@/utils/auth";
 
 export type UserResult = {
   success?: boolean;
@@ -110,31 +111,35 @@ export const getLogin = async (data?: object): Promise<UserResult> => {
   }
 
   // 2. 获取用户信息（注意：这个接口也返回 { code, msg, data }）
-  const userInfoRes = await http.request<UserResult>("get", "/admin/sys/user/info", {}, {
-    headers: {
-      Authorization: loginRes.data.accessToken,
-      RefreshToken: loginRes.data.refreshToken
+  try {
+    const userInfoRes = await http.request<UserResult>("get", "/admin/sys/user/info", {}, {
+      headers: {
+        Authorization: loginRes.data.accessToken,
+        RefreshToken: loginRes.data.refreshToken
+      }
+    });
+
+    if (userInfoRes.code !== 200) {
+      removeToken();
+      throw new Error(userInfoRes.msg || "获取用户信息失败");
     }
-  });
 
-  if (userInfoRes.code !== 200) {
-    // 可选：如果用户信息拉取失败，是否视为登录失败？
-    // 这里你可以选择抛出错误，或只返回登录成功但无用户信息
-    throw new Error(userInfoRes.msg || "获取用户信息失败");
+    // 3. 合并：loginRes.data + userInfoRes.data
+    const mergedData = {
+      ...loginRes.data,      // token 相关
+      ...userInfoRes.data    // 用户详情（这才是真正的用户对象）
+    };
+
+    // 4. 返回统一的成功结构
+    return {
+      code: 200,
+      msg: "登录成功",
+      data: mergedData
+    };
+  } catch (error) {
+    removeToken();
+    throw error;
   }
-
-  // 3. 合并：loginRes.data + userInfoRes.data
-  const mergedData = {
-    ...loginRes.data,      // token 相关
-    ...userInfoRes.data    // 用户详情（这才是真正的用户对象）
-  };
-
-  // 4. 返回统一的成功结构
-  return {
-    code: 200,
-    msg: "登录成功",
-    data: mergedData
-  };
 };
 
 // export const getUserInfo = () => {

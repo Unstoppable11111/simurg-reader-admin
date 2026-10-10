@@ -81,38 +81,11 @@ class PureHttp {
 
               const data = getToken();
               if (data) {
-                const now = new Date().getTime();
-                const expireTime = Number(
-                  data.accessTokenExpire || (data as any).expires
+                config.headers["Authorization"] = formatToken(
+                  data.accessToken
                 );
-                const expired = expireTime ? expireTime - now <= 0 : false;
-                if (expired) {
-                  if (!PureHttp.isRefreshing) {
-                    PureHttp.isRefreshing = true;
-                    useUserStoreHook()
-                      .handRefreshToken({ refreshToken: data.refreshToken })
-                      .then(res => {
-                        const token = res.data.accessToken;
-                        config.headers["Authorization"] = formatToken(token);
-                        PureHttp.requests.forEach(cb => cb(token));
-                        PureHttp.requests = [];
-                      })
-                      .catch(() => {
-                        // 刷新失败时清理无效凭证
-                        removeToken();
-                      })
-                      .finally(() => {
-                        PureHttp.isRefreshing = false;
-                      });
-                  }
-                  resolve(PureHttp.retryOriginalRequest(config));
-                } else {
-                  config.headers["Authorization"] = formatToken(
-                    data.accessToken
-                  );
-                  config.headers["RefreshToken"] = data.refreshToken;
-                  resolve(config);
-                }
+                config.headers["RefreshToken"] = data.refreshToken;
+                resolve(config);
               } else {
                 resolve(config);
               }

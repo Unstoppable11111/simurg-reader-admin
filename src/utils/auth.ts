@@ -50,13 +50,14 @@ export function setToken(data: DataInfo<Date>) {
   let accessTokenExpire = 0;
   const { accessToken, refreshToken } = data;
   const { isRemembered, loginDay } = useUserStoreHook();
-  accessTokenExpire = new Date(data.accessTokenExpire).getTime(); // 如果后端直接设置时间戳，将此处代码改为accessTokenExpire = data.accessTokenExpire，然后把上面的DataInfo<Date>改成DataInfo<number>即可
+  const rawExpire = data.accessTokenExpire || (data as any).expires;
+  accessTokenExpire = rawExpire ? new Date(rawExpire).getTime() : 0;
   const cookieString = JSON.stringify({ accessToken, accessTokenExpire, refreshToken });
 
   accessTokenExpire > 0
     ? Cookies.set(TokenKey, cookieString, {
-      accessTokenExpire: (accessTokenExpire - Date.now()) / 86400000
-    })
+        expires: (accessTokenExpire - Date.now()) / 86400000
+      })
     : Cookies.set(TokenKey, cookieString);
 
   Cookies.set(
@@ -64,8 +65,8 @@ export function setToken(data: DataInfo<Date>) {
     "true",
     isRemembered
       ? {
-        accessTokenExpire: loginDay
-      }
+          expires: loginDay
+        }
       : {}
   );
 

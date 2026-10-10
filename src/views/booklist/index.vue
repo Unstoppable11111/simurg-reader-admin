@@ -82,18 +82,23 @@ const coverPreviewList = computed(() =>
 );
 
 // 表单数据初始化
-const formData = reactive({
+const defaultFormData = {
   bookId: null,
   title: "",
   description: "",
   protagonistIntroduction: "",
+  authorTestimonial: "",
   language: "zh",
   isFree: 0,
   coverImageUrl: "",
-  categoryIdList: []
-});
+  categoryIdList: [],
+  chapterTitle: "",
+  chapterContent: ""
+};
 
-const rules = {
+const formData = reactive({ ...defaultFormData });
+
+const rules = computed(() => ({
   title: [{ required: true, message: "请输入书籍标题", trigger: "blur" }],
   description: [{ required: true, message: "请输入书籍描述", trigger: "blur" }],
   coverImageUrl: [
@@ -101,20 +106,23 @@ const rules = {
   ],
   categoryIdList: [
     { required: true, message: "请至少选择一个作品分类", trigger: "change" }
-  ]
-};
+  ],
+  language: [{ required: true, message: "请选择或输入作品语言", trigger: "change" }],
+  isFree: [{ required: true, message: "请选择是否免费", trigger: "change" }],
+  ...(isEdit.value
+    ? {}
+    : {
+        chapterTitle: [
+          { required: true, message: "请输入首章章节标题", trigger: "blur" }
+        ],
+        chapterContent: [
+          { required: true, message: "请输入首章正文内容", trigger: "blur" }
+        ]
+      })
+}));
 
 const resetForm = () => {
-  Object.assign(formData, {
-    bookId: null,
-    title: "",
-    description: "",
-    protagonistIntroduction: "",
-    language: "zh",
-    isFree: 0,
-    coverImageUrl: "",
-    categoryIdList: []
-  });
+  Object.assign(formData, defaultFormData);
   isUploading.value = false;
   if (formRef.value) formRef.value.clearValidate();
 };
@@ -136,6 +144,7 @@ const openEditDialog = async row => {
       const detail = res.data;
       Object.assign(formData, {
         ...detail,
+        language: detail.languagestring || detail.language || "zh",
         categoryIdList:
           detail.bookCategoryResponseList?.map(c => c.categoryId) || []
       });
@@ -150,9 +159,34 @@ const submitForm = async () => {
   if (!formRef.value || isUploading.value) return;
   try {
     await formRef.value.validate();
-    const res = isEdit.value
-      ? await adminUpdateBookInfo(formData)
-      : await adminCreateBook(formData);
+    let res;
+    if (isEdit.value) {
+      res = await adminUpdateBookInfo({
+        bookId: formData.bookId,
+        title: formData.title,
+        description: formData.description,
+        coverImageUrl: formData.coverImageUrl,
+        language: formData.language,
+        isFree: formData.isFree,
+        protagonistIntroduction: formData.protagonistIntroduction,
+        authorTestimonial: formData.authorTestimonial,
+        categoryList: formData.categoryIdList
+      });
+    } else {
+      res = await adminCreateBook({
+        title: formData.title,
+        description: formData.description,
+        coverImageUrl: formData.coverImageUrl,
+        categoryIdList: formData.categoryIdList,
+        language: formData.language,
+        isFree: formData.isFree,
+        chapterTitle: formData.chapterTitle,
+        chapterContent: formData.chapterContent,
+        protagonistIntroduction: formData.protagonistIntroduction,
+        authorTestimonial: formData.authorTestimonial
+      });
+    }
+
     if (res.code === 200) {
       ElMessage.success(isEdit.value ? "修改成功" : "新增成功");
       dialogVisible.value = false;
@@ -507,30 +541,35 @@ const uploadFile = async event => {
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑书籍' : '新增书籍'"
-      width="600px"
+      width="680px"
+      top="6vh"
       @close="resetForm"
     >
-      <div v-loading="loadingDetail">
+      <div v-loading="loadingDetail" class="max-h-[75vh] overflow-y-auto pr-2">
         <el-form
           ref="formRef"
           :model="formData"
           :rules="rules"
           label-width="100px"
         >
-          <el-form-item label="书籍标题" prop="title"
-            ><el-input v-model="formData.title" placeholder="输入书籍名称"
-          /></el-form-item>
-          <el-form-item label="封面图片" prop="coverImageUrl"
-            ><ReUpload
+          <el-form-item label="书籍标题" prop="title">
+            <el-input v-model="formData.title" placeholder="输入书籍名称" />
+          </el-form-item>
+
+          <el-form-item label="封面图片" prop="coverImageUrl">
+            <ReUpload
               v-model="formData.coverImageUrl"
+              tip="建议尺寸：600 × 800 像素（比例 3:4），大小不超过 2MB，支持 JPG / PNG"
               @loading="val => (isUploading = val)"
-          /></el-form-item>
+            />
+          </el-form-item>
+
           <el-form-item label="作品分类" prop="categoryIdList">
             <el-select
               v-model="formData.categoryIdList"
               multiple
               filterable
-              placeholder="多选"
+              placeholder="多选分类"
               class="w-full"
             >
               <el-option
@@ -541,13 +580,83 @@ const uploadFile = async event => {
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="书籍描述" prop="description"
-            ><el-input
+
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="作品语言" prop="language">
+                <el-select
+                  v-model="formData.language"
+                  placeholder="选择或输入语言"
+                  filterable
+                  allow-create
+                  class="w-full"
+                >
+                  <el-option label="中文 (zh)" value="zh" />
+                  <el-option label="英语 (en)" value="en" />
+                  <el-option label="日语 (ja)" value="ja" />
+                  <el-option label="韩语 (ko)" value="ko" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="是否免费" prop="isFree">
+                <el-radio-group v-model="formData.isFree">
+                  <el-radio :value="0">收费</el-radio>
+                  <el-radio :value="1">免费</el-radio>
+                </el-radio-group>
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <el-form-item label="主角介绍" prop="protagonistIntroduction">
+            <el-input
+              v-model="formData.protagonistIntroduction"
+              placeholder="选填：主要角色介绍或性格设定"
+            />
+          </el-form-item>
+
+          <el-form-item label="作者感言" prop="authorTestimonial">
+            <el-input
+              v-model="formData.authorTestimonial"
+              placeholder="选填：作者写给读者的话"
+            />
+          </el-form-item>
+
+          <el-form-item label="书籍描述" prop="description">
+            <el-input
               v-model="formData.description"
               type="textarea"
-              :rows="4"
-              placeholder="书籍简介..."
-          /></el-form-item>
+              :rows="3"
+              placeholder="书籍简介与故事背景概要..."
+            />
+          </el-form-item>
+
+          <!-- 初始首章内容（创建新书必填，编辑时通过专门的章节管理维护） -->
+          <div
+            v-if="!isEdit"
+            class="mt-4 pt-3 border-t border-dashed border-gray-200"
+          >
+            <div
+              class="mb-3 font-bold text-gray-700 text-sm flex items-center gap-1.5"
+            >
+              <span class="w-1 h-3.5 bg-primary rounded-full inline-block"></span>
+              初始首章内容（创建新书必填）
+            </div>
+            <el-form-item label="首章标题" prop="chapterTitle">
+              <el-input
+                v-model="formData.chapterTitle"
+                placeholder="例如：第一章 初入江湖"
+              />
+            </el-form-item>
+            <el-form-item label="首章正文" prop="chapterContent">
+              <el-input
+                v-model="formData.chapterContent"
+                type="textarea"
+                :rows="6"
+                placeholder="请输入首章正文内容..."
+              />
+            </el-form-item>
+          </div>
         </el-form>
       </div>
       <template #footer>

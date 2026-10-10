@@ -48,8 +48,8 @@ stages:
           username: root
           ssh-key: ${{ secrets.SSH_KEY }}
           script: |
-            # 宝塔站点物理路径（若宝塔后台目录不同请在此修改）
-            WEB_DIR="/www/wwwroot/simurg-reader-admin"
+            # 宝塔站点物理路径
+            WEB_DIR="/www/wwwroot/simurg-admin"
             mkdir -p $WEB_DIR
             tar -xzvf /tmp/dist.tar.gz -C $WEB_DIR
             # 修复宝塔 www 用户权限，防止权限拒绝

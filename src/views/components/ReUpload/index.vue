@@ -8,7 +8,8 @@ defineOptions({ name: "ReUpload" });
 
 const props = defineProps({
   modelValue: { type: String, default: "" },
-  limit: { type: Number, default: 1 }
+  limit: { type: Number, default: 1 },
+  tip: { type: String, default: "" }
 });
 
 // 新增 loading 事件
@@ -112,6 +113,9 @@ const handlePictureCardPreview = (file: any) => {
         </div>
       </template>
     </el-upload>
+    <div v-if="tip || $slots.tip" class="el-upload__tip text-gray-400 text-xs mt-1.5 leading-normal">
+      <slot name="tip">{{ tip }}</slot>
+    </div>
 
     <el-dialog
       v-model="previewVisible"

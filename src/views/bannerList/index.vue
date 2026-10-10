@@ -245,6 +245,7 @@ const submitForm = async () => {
         <el-form-item label="上传图片" prop="imageUrl">
           <ReUpload
             v-model="formData.imageUrl"
+            tip="建议尺寸：1080 × 450 像素（或比例 16:9 / 2.4:1），支持 JPG / PNG，大小不超过 2MB"
             @loading="val => (isUploading = val)"
           />
         </el-form-item>

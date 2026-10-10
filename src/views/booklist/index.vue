@@ -107,7 +107,9 @@ const rules = computed(() => ({
   categoryIdList: [
     { required: true, message: "请至少选择一个作品分类", trigger: "change" }
   ],
-  language: [{ required: true, message: "请选择或输入作品语言", trigger: "change" }],
+  language: [
+    { required: true, message: "请选择或输入作品语言", trigger: "change" }
+  ],
   isFree: [{ required: true, message: "请选择是否免费", trigger: "change" }],
   ...(isEdit.value
     ? {}
@@ -467,9 +469,7 @@ const uploadFile = async event => {
           :active-text="getDictLabel('bookSerialStatus', 0)"
           :inactive-text="getDictLabel('bookSerialStatus', 1)"
           inline-prompt
-          style="
-
---el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
+          style="--el-switch-on-color: #13ce66; --el-switch-off-color: #ff4949"
           @change="val => handleUpdateStatus(row, { serialStatus: val })"
         />
       </template>
@@ -541,86 +541,114 @@ const uploadFile = async event => {
     <el-dialog
       v-model="dialogVisible"
       :title="isEdit ? '编辑书籍' : '新增书籍'"
-      width="680px"
-      top="6vh"
+      width="840px"
+      top="5vh"
       @close="resetForm"
     >
-      <div v-loading="loadingDetail" class="max-h-[75vh] overflow-y-auto pr-2">
+      <div
+        v-loading="loadingDetail"
+        class="max-h-[75vh] overflow-y-auto px-1 pr-2"
+      >
         <el-form
           ref="formRef"
           :model="formData"
           :rules="rules"
-          label-width="100px"
+          label-width="85px"
+          class="book-dialog-form"
         >
-          <el-form-item label="书籍标题" prop="title">
-            <el-input v-model="formData.title" placeholder="输入书籍名称" />
-          </el-form-item>
-
-          <el-form-item label="封面图片" prop="coverImageUrl">
-            <ReUpload
-              v-model="formData.coverImageUrl"
-              tip="建议尺寸：600 × 800 像素（比例 3:4），大小不超过 2MB，支持 JPG / PNG"
-              @loading="val => (isUploading = val)"
-            />
-          </el-form-item>
-
-          <el-form-item label="作品分类" prop="categoryIdList">
-            <el-select
-              v-model="formData.categoryIdList"
-              multiple
-              filterable
-              placeholder="多选分类"
-              class="w-full"
-            >
-              <el-option
-                v-for="item in categoryOptions"
-                :key="item.categoryId"
-                :label="item.categoryName"
-                :value="item.categoryId"
-              />
-            </el-select>
-          </el-form-item>
-
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="作品语言" prop="language">
-                <el-select
-                  v-model="formData.language"
-                  placeholder="选择或输入语言"
-                  filterable
-                  allow-create
-                  class="w-full"
-                >
-                  <el-option label="中文 (zh)" value="zh" />
-                  <el-option label="英语 (en)" value="en" />
-                  <el-option label="日语 (ja)" value="ja" />
-                  <el-option label="韩语 (ko)" value="ko" />
-                </el-select>
+          <el-row :gutter="24">
+            <!-- 左侧：封面上传（契合 3:4 书籍封面比例） -->
+            <el-col :span="8">
+              <el-form-item
+                label="封面图片"
+                prop="coverImageUrl"
+                class="book-cover-form-item"
+              >
+                <div class="flex flex-col items-center w-full">
+                  <ReUpload
+                    v-model="formData.coverImageUrl"
+                    tip="建议尺寸：600 × 800 像素（比例 3:4），大小不超过 2MB，支持 JPG / PNG"
+                    class="book-cover-upload"
+                    @loading="val => (isUploading = val)"
+                  />
+                </div>
               </el-form-item>
             </el-col>
-            <el-col :span="12">
-              <el-form-item label="是否免费" prop="isFree">
-                <el-radio-group v-model="formData.isFree">
-                  <el-radio :value="0">收费</el-radio>
-                  <el-radio :value="1">免费</el-radio>
-                </el-radio-group>
+
+            <!-- 右侧：书籍核心属性 -->
+            <el-col :span="16">
+              <el-form-item label="书籍标题" prop="title">
+                <el-input
+                  v-model="formData.title"
+                  placeholder="请输入书籍名称"
+                />
+              </el-form-item>
+
+              <el-form-item label="作品分类" prop="categoryIdList">
+                <el-select
+                  v-model="formData.categoryIdList"
+                  multiple
+                  collapse-tags
+                  collapse-tags-tooltip
+                  filterable
+                  placeholder="请选择作品分类（支持多选）"
+                  class="w-full"
+                >
+                  <el-option
+                    v-for="item in categoryOptions"
+                    :key="item.categoryId"
+                    :label="item.categoryName"
+                    :value="item.categoryId"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-row :gutter="16">
+                <el-col :span="13">
+                  <el-form-item label="作品语言" prop="language">
+                    <el-select
+                      v-model="formData.language"
+                      placeholder="选择或输入语言"
+                      filterable
+                      allow-create
+                      class="w-full"
+                    >
+                      <el-option label="中文 (zh)" value="zh" />
+                      <el-option label="英语 (en)" value="en" />
+                      <el-option label="日语 (ja)" value="ja" />
+                      <el-option label="韩语 (ko)" value="ko" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+                <el-col :span="11">
+                  <el-form-item
+                    label="是否免费"
+                    prop="isFree"
+                    label-width="70px"
+                  >
+                    <el-radio-group v-model="formData.isFree">
+                      <el-radio :value="0">收费</el-radio>
+                      <el-radio :value="1">免费</el-radio>
+                    </el-radio-group>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-form-item label="主角介绍" prop="protagonistIntroduction">
+                <el-input
+                  v-model="formData.protagonistIntroduction"
+                  placeholder="选填：主要角色介绍或性格设定"
+                />
+              </el-form-item>
+
+              <el-form-item label="作者感言" prop="authorTestimonial">
+                <el-input
+                  v-model="formData.authorTestimonial"
+                  placeholder="选填：作者写给读者的话"
+                />
               </el-form-item>
             </el-col>
           </el-row>
-
-          <el-form-item label="主角介绍" prop="protagonistIntroduction">
-            <el-input
-              v-model="formData.protagonistIntroduction"
-              placeholder="选填：主要角色介绍或性格设定"
-            />
-          </el-form-item>
-
-          <el-form-item label="作者感言" prop="authorTestimonial">
-            <el-input
-              v-model="formData.authorTestimonial"
-              placeholder="选填：作者写给读者的话"
-            />
-          </el-form-item>
 
           <el-form-item label="书籍描述" prop="description">
             <el-input
@@ -634,13 +662,16 @@ const uploadFile = async event => {
           <!-- 初始首章内容（创建新书必填，编辑时通过专门的章节管理维护） -->
           <div
             v-if="!isEdit"
-            class="mt-4 pt-3 border-t border-dashed border-gray-200"
+            class="mt-4 p-4 rounded-lg bg-slate-50 border border-slate-200"
           >
             <div
-              class="mb-3 font-bold text-gray-700 text-sm flex items-center gap-1.5"
+              class="mb-3 font-semibold text-gray-800 text-sm flex items-center gap-2"
             >
-              <span class="w-1 h-3.5 bg-primary rounded-full inline-block"></span>
-              初始首章内容（创建新书必填）
+              <span class="w-1.5 h-4 bg-primary rounded-full inline-block" />
+              <span>初始首章内容</span>
+              <span class="text-xs text-gray-400 font-normal"
+                >（创建新书必填，后续可在章节列表中管理）</span
+              >
             </div>
             <el-form-item label="首章标题" prop="chapterTitle">
               <el-input
@@ -648,11 +679,11 @@ const uploadFile = async event => {
                 placeholder="例如：第一章 初入江湖"
               />
             </el-form-item>
-            <el-form-item label="首章正文" prop="chapterContent">
+            <el-form-item label="首章正文" prop="chapterContent" class="!mb-0">
               <el-input
                 v-model="formData.chapterContent"
                 type="textarea"
-                :rows="6"
+                :rows="5"
                 placeholder="请输入首章正文内容..."
               />
             </el-form-item>
@@ -660,10 +691,17 @@ const uploadFile = async event => {
         </el-form>
       </div>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="isUploading" @click="submitForm"
-          >保存</el-button
-        >
+        <div class="dialog-footer flex justify-end gap-3">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button
+            type="primary"
+            :loading="isUploading"
+            :disabled="isUploading"
+            @click="submitForm"
+          >
+            {{ isUploading ? "上传中..." : "保存" }}
+          </el-button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -703,8 +741,8 @@ const uploadFile = async event => {
   border-radius: 4px;
 }
 
-/* 解决表单项底部间距问题 */
-:deep(.el-form-item) {
+/* 仅针对搜索栏表单项清除底部外边距，避免影响弹窗表单 */
+.search-form-container :deep(.el-form-item) {
   margin-bottom: 0 !important;
 }
 
@@ -714,5 +752,51 @@ const uploadFile = async event => {
 
 .search-form-container :deep(.el-row:last-child) {
   margin-bottom: 0;
+}
+
+/* 弹窗表单样式优化 */
+.book-dialog-form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.book-cover-form-item :deep(.el-form-item__label) {
+  width: 100% !important;
+  justify-content: flex-start;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.book-cover-form-item :deep(.el-form-item__content) {
+  margin-left: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* 3:4 书籍封面卡片样式 */
+.book-cover-upload :deep(.el-upload--picture-card),
+.book-cover-upload :deep(.el-upload-list--picture-card .el-upload-list__item) {
+  width: 135px;
+  height: 180px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.book-cover-upload :deep(.el-upload--picture-card) {
+  border: 1px dashed #dcdfe6;
+  background-color: #fbfbfb;
+  transition: all 0.25s ease;
+}
+
+.book-cover-upload :deep(.el-upload--picture-card:hover) {
+  border-color: var(--el-color-primary, #409eff);
+  background-color: #f0f7ff;
+}
+
+.book-cover-upload :deep(.el-upload__tip) {
+  text-align: center;
+  max-width: 190px;
+  line-height: 1.4;
+  margin-top: 8px;
 }
 </style>

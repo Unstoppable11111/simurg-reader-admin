@@ -13,7 +13,7 @@ stages:
     nodeVersion: 24.13.0
     commands:
     - set -e
-    - npm install -g pnpm --prefix ~/.local
+    - npm install -g pnpm@9 --prefix ~/.local
     - export PATH=~/.local/bin:$PATH
     - pnpm install --frozen-lockfile
     - pnpm build

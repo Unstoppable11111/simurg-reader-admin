@@ -25,12 +25,11 @@ stages:
         nodeVersion: 20.10.0
         commands:
           - set -e
-          # 1. 启用 pnpm
-          - corepack enable
-          - corepack prepare pnpm@latest --activate
-          # 2. 安装依赖并构建产物
+          # 1. 在用户目录安装 pnpm，解决只读文件系统 (EROFS) 报错
+          - npm install -g pnpm --prefix ~/.local
+          - export PATH=~/.local/bin:$PATH
+          # 2. 安装项目依赖并打包
           - pnpm install --frozen-lockfile
-          - pnpm add -D node-ssh
           - pnpm build
-          # 3. 运行 Node 原生 SFTP 传输脚本（无需 root/apt 权限，稳定可靠）
+          # 3. 运行 Node 原生 SFTP 传输脚本
           - node build/deploy.mjs

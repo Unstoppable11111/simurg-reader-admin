@@ -52,3 +52,28 @@ git push origin <当前工作分支>
 1. **Commit Hash 与 Commit Message**。
 2. **推送的目标分支与推送结果**。
 3. **提示用户云端流水线已自动触发构建与部署**。
+
+---
+
+## 二、项目通用研发与代码约束规范索引
+
+Simurg Reader 项目集的完整统一规范已收录于上级公共文档库中：
+- **完整规范文档**：`E:\simurg-reader\docs\simurg_reader_dev_specification.md`
+
+### 核心约束摘要（日常编码严格执行）：
+1. **TypeScript 强类型规范**：
+   - 类型导入必须使用内联类型语法：`import { type PropType, ref } from "vue"` 或 `import type { ... } from "..."`。
+   - 未使用的入参或变量必须以 `_` 开头命名（如 `_item`, `_index`）。
+   - 严禁滥用 `any`，复杂结构需定义清晰的 `interface` 或 `type`。
+2. **Vue 3 组件开发规范**：
+   - 统一采用 `<script setup lang="ts">` 组合式语法。
+   - 模板标签强制自闭合（如 `<el-input />`, `<img />`）。
+   - Props 禁止直接解构避免丢失响应性。
+3. **样式与布局防御**：
+   - 优先使用 TailwindCSS 原子类，组件样式加 `scoped`。
+   - 样式穿透统一使用 `:deep(...)`，严禁使用 `/deep/` 或 `>>>`。
+   - 弹窗、表单及表格容器必须做好高度约束与滚动控制（`overflow-y: auto`），避免出现双向横向滚动条、布局塌陷及字体重叠。
+4. **统一 Commitlint 枚举**：
+   - 支持枚举：`feat` / `fix` / `perf` / `style` / `docs` / `refactor` / `types` / `build` / `ci` / `chore` / `test` / `revert`。
+   - 严禁使用模糊词汇：`update`, `modify`, `change`, `test`, `temp`, `fix bug`。
+
